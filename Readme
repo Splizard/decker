@@ -1,0 +1,23 @@
+Decker!
+A tool for creating trading card decks for Table Top Simulator.
+
+At the moment, it only supports magic decks.
+Have a look at the provided example.deck on how to format a deck.
+
+To install on linux, ensure you have go installed and run.
+    make && make install
+
+For windows, run: (Not tested)
+    go build -o ./decker.exe ./src
+
+Some example decks are contained in the decks folder.
+(They are the M15 30 card sample decks.)
+	cd ./decks
+    decker *.deck
+This will generate the decks into images in the /decks folder.
+    
+Usage:
+	decker -o deck.jpg deck.txt
+
+This will generate an image called deck.jpg.
+Put this image somewhere online and it can be downloaded by Table Top Simulator!
