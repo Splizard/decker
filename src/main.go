@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"sync"
 	"errors"
+	"runtime"
 )
 
 import "./ct"
@@ -205,7 +206,12 @@ func decker(filename string) {
 				}
 				for i := 1; i < tens*10+ones; i++ {
 					if _, err := os.Stat(temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg"); os.IsNotExist(err) {
-						os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+						if runtime.GOOS == "windows" {
+							Copy(cache+"/cards/magic/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+						} else {
+							os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+						}
+						
 					}
 				}
 			}
@@ -231,6 +237,14 @@ var cache string
 
 func main() {
 	cache = os.Getenv("HOME")+"/.cache/decker"
+	
+	if runtime.GOOS == "windows" {
+		cache = os.Getenv("HOMEDRIVE")+os.Getenv("HOMEPATH")
+		if cache == "" {
+			cache = os.Getenv("USERPROFILE")
+		}
+		cache += "/AppData/Roaming/decker"
+	}
 	
 	flag.Parse()
 

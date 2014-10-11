@@ -5,14 +5,16 @@ At the moment, it only supports magic decks.
 Have a look at the provided example.deck on how to format a deck.
 
 To install on linux, ensure you have go installed and run.
+	sudo apt-get install imagemagick
     make && make install
 
 For windows, run: (Not tested)
     go build -o ./decker.exe ./src
+You also need the imagemagick program 'montage' installed.
 
 Some example decks are contained in the decks folder.
 (They are the M15 30 card sample decks.)
-	cd ./decks
+    cd ./decks
     decker *.deck
 This will generate the decks into images in the /decks folder.
     
