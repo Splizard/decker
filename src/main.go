@@ -337,9 +337,23 @@ func decker(filename string) {
 			}
 		}
 		
-		fmt.Println("Generating image for "+filename+"...")
-		montage := exec.Command("montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585!+0+0", temp+"/*.jpg", output)
-		montage.Run()
+		fmt.Println("Generating image for "+filename+" to "+output+"...")
+		
+		command := "montage"
+		
+		if runtime.GOOS == "windows" {
+			command, err = filepath.Abs(os.Args[0])
+			command = filepath.Dir(command)
+			if err != nil {
+				command = "montage"
+			} else {
+				command += "/montage"
+			}
+		}
+		
+		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585!+0+0", temp+"/*.jpg", output)
+		err := montage.Run()
+		handle(err)
 		ct.ChangeColor(ct.Green, true, ct.None, false)
 		fmt.Print("Done ")
 		ct.ResetColor()
