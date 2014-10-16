@@ -9,4 +9,4 @@ install:
 windows:
 	GOOS=windows \
 	GOARCH=386 \
-	go build -o ./decker.exe ./src
+	go build -o ./windows/decker.exe ./src
