@@ -30,6 +30,8 @@ import (
 	"sync"
 	"errors"
 	"runtime"
+	"regexp"
+	"net/url"
 )
 
 import "./ct"
@@ -71,6 +73,15 @@ func init() {
 	flag.StringVar(&output, "o", "deck.jpg", "output file")
 }
 
+const (
+	None = ""
+	Magic = "magic"
+	Pokemon = "pokemon"
+)
+
+var pokemonregex *regexp.Regexp
+var pokemonimageregex * regexp.Regexp
+
 func decker(filename string) {
 	defer func() {
             if r := recover(); r != nil {
@@ -93,8 +104,13 @@ func decker(filename string) {
 
 
 	var name string
+	var imagename string //This could different to the card name eg. Pokemon.
+	var info string
+	
 	var client http.Client
 	var temp string
+	
+	var game string = None
 	
 	var output = output
 	
@@ -114,10 +130,19 @@ func decker(filename string) {
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
 		
-		if line != "Magic: The Gathering" {
-			handle(errors.New("No game found!"))
-			return
+		//Some friendly identifiers.
+		if line == "Magic: The Gathering" || line == "Magic" || line == "MTG" {
+			game = Magic
 		}
+		if line == "Pokemon" || line == "Pokemon Trading Card Game" || line == "Pokémon Trading Card Game" {
+			game = Pokemon
+			pokemonregex = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-:]*)/`)
+			pokemonimageregex = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-:]*)`)
+		}
+		if game == None {
+			handle(errors.New("No game found!"))
+		}
+		
 		for {
 			line, err := reader.ReadString('\n') // parse line-by-line
 			if err == io.EOF {
@@ -142,7 +167,30 @@ func decker(filename string) {
 					name = strings.TrimSpace(line[2:])
 				}
 				
-				_, err := os.Stat(cache+"/cards/magic/"+name+".jpg")
+				imagename = ""
+				
+				//Info is so cards can be identified easier.
+				//Such is that in pokemon where lots of cards have the same name.
+				info = ""
+				if game == Pokemon {
+					if strings.Contains(name, ",") {
+						splits := strings.Split(name, ",")
+						name = splits[0]
+						info = strings.TrimSpace(splits[1])
+					}
+					if strings.Contains(name, " with ") {
+						splits := strings.Split(name, " with ")
+						name = splits[0]
+						info =strings.TrimSpace(splits[1])
+					}
+					if strings.Contains(name, " that has ") {
+						splits := strings.Split(name, " that has ")
+						name = splits[0]
+						info = strings.TrimSpace(splits[1])
+					}
+				}
+				
+				_, err := os.Stat(cache+"/cards/"+game+"/"+name+".jpg")
 				
 				if !os.IsNotExist(err) {
 					if os.IsNotExist(err) {
@@ -154,29 +202,100 @@ func decker(filename string) {
 				}
 				
 				if os.IsNotExist(err) {
-					if _, err := os.Stat(cache+"/cards/magic/"); os.IsNotExist(err) {
-						handle(os.MkdirAll(cache+"/cards/magic/", os.ModePerm))
+					if _, err := os.Stat(cache+"/cards/"+game+"/"); os.IsNotExist(err) {
+						handle(os.MkdirAll(cache+"/cards/"+game+"/", os.ModePerm))
 					}
+					
+					if game == Magic {
 				
-					println("getting", "http://mtgimage.com/card/"+name+".jpg")
-					response, err := client.Get("http://mtgimage.com/card/"+name+".jpg")
-					handle(err)
-					if response.StatusCode == 404 {
-						handle(errors.New("card name '"+ name +"' invalid!"))
-					} else {
-						if response.StatusCode != 200 {
+						println("getting", "http://mtgimage.com/card/"+name+".jpg")
+						response, err := client.Get("http://mtgimage.com/card/"+name+".jpg")
+						handle(err)
+						if response.StatusCode == 404 {
+							handle(errors.New("card name '"+ name +"' invalid!"))
+						} else {
+							if response.StatusCode != 200 {
+								println("possible error check file! "+ name+ ", status "+response.Status)
+							}
+							imageOut, err := os.Create(cache+"/cards/magic/"+name+".jpg")
+							handle(err)
+							io.Copy(imageOut, response.Body)
+							imageOut.Close()
+						}
+						
+					} else if game == Pokemon {
+						//Format url, pkmncards.com does not like an empty text:"" field.
+						var search string
+						if info != "" {
+							search = "http://pkmncards.com/?s="+url.QueryEscape(name)+"+text%3A%22"+url.QueryEscape(info)+"%22&display=scan&sort=date"
+						} else {
+							search = "http://pkmncards.com/?s="+url.QueryEscape(name)+"%22&display=scan&sort=date"
+						}
+					
+						response, err := client.Get(search)
+						handle(err)
+						if response.StatusCode == 404 {
+							handle(errors.New("card name '"+ name +"' invalid!"))
+						} else if response.StatusCode != 200 {
 							println("possible error check file! "+ name+ ", status "+response.Status)
 						}
-						imageOut, err := os.Create(cache+"/cards/magic/"+name+".jpg")
+						
+						body, err := ioutil.ReadAll(response.Body)
 						handle(err)
-						io.Copy(imageOut, response.Body)
-						imageOut.Close()
+
+						card := string(pokemonregex.Find([]byte(body)))
+						
+						if card == "" {
+							handle(errors.New("card name '"+ name +"' not found!\nCheck "+search))
+						}
+						
+						//Get actual card.
+						response, err = client.Get(card)
+						body, err = ioutil.ReadAll(response.Body)
+						handle(err)
+						submatches := pokemonimageregex.FindStringSubmatch(string(body))
+						if len(submatches) < 2 {
+							handle(errors.New("No image found for card "+name+", this could be a bug !"))
+						}
+						image := string(submatches[1])
+						
+						path, err := url.Parse(image)
+						handle(err)
+						imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
+						
+						if _, err := os.Stat(cache+"/cards/"+game+"/"+imagename+".jpg"); !os.IsNotExist(err) {
+							if !usingCache {
+								fmt.Println("using cached files")
+								usingCache = true
+							}
+						} else {
+						
+							fmt.Println("getting", image)
+							response, err = client.Get(image)
+							handle(err)
+							if response.StatusCode == 404 {
+								handle(errors.New("card name '"+ name +"' invalid!"))
+							} else {
+								if response.StatusCode != 200 {
+									println("possible error check file! "+ name+ ", status "+response.Status)
+								}
+								imageOut, err := os.Create(cache+"/cards/pokemon/"+imagename+".jpg")
+								handle(err)
+								io.Copy(imageOut, response.Body)
+								imageOut.Close()
+							}
+						}
 					}
+					
 				}
 				
 				//Create deck.
+				
+				if imagename != "" {
+					name = imagename
+				}
 				if _, err := os.Stat(temp+"/"+name+".jpg"); os.IsNotExist(err) {
-					_, err := Copy(cache+"/cards/magic/"+name+".jpg", temp+"/"+name+".jpg")
+					_, err := Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+".jpg")
 					handle(err)
 				}
 			
@@ -218,7 +337,7 @@ func decker(filename string) {
 		}
 		
 		fmt.Println("Generating image for "+filename+"...")
-		montage := exec.Command("montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585+0+0", temp+"/*.jpg", output)
+		montage := exec.Command("montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585!+0+0", temp+"/*.jpg", output)
 		montage.Run()
 		ct.ChangeColor(ct.Green, true, ct.None, false)
 		fmt.Print("Done ")

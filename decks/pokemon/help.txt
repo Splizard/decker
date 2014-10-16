@@ -1,0 +1,10 @@
+SOME HELP..
+
+If you don't know the set of a card you can provide the attacks the card has.
+Say for example you have some old pokemon cards lying around, 
+you can provide attacks or possibly other text that is on the card which could identify it.
+I have an old Ponyta and it has Ember.
+# 1x Ponyta with Ember
+(that would hopefully identify it)
+In this case it doesn't so I would have to include the card number as well.
+# 1x Ponyta 64 with Ember

@@ -1,8 +1,8 @@
 Decker!
 A tool for creating trading card decks for Table Top Simulator.
 
-At the moment, it only supports magic decks.
-Have a look at the provided example.deck on how to format a deck.
+At the moment, it only supports magic and pokemon decks.
+Have a look at the provided example decks on how to format a deck.
 
 To install on linux, ensure you have go installed and run.
 	sudo apt-get install imagemagick
@@ -14,9 +14,11 @@ You also need the imagemagick program 'montage' installed.
 
 Some example decks are contained in the decks folder.
 (They are the M15 30 card sample decks.)
-    cd ./decks
+    cd ./decks/magic
     decker *.deck
-This will generate the decks into images in the /decks folder.
+    cd ./decks/pokemon
+    decker *.deck
+This will generate the decks into images in the respective folder.
     
 Usage:
 	decker -o deck.jpg deck.txt
