@@ -383,4 +383,9 @@ func main() {
 	}
 	
 	wg.Wait()
+	if runtime.GOOS == "windows" {
+		fmt.Println("Press 'Enter' to close...")
+		reader := bufio.NewReader(os.Stdin)
+   		reader.ReadString('\n')
+	}
 }
