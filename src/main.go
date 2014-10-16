@@ -201,7 +201,8 @@ func decker(filename string) {
 					}
 				}
 				
-				if os.IsNotExist(err) {
+				if game == Pokemon || os.IsNotExist(err) {
+				
 					if _, err := os.Stat(cache+"/cards/"+game+"/"); os.IsNotExist(err) {
 						handle(os.MkdirAll(cache+"/cards/"+game+"/", os.ModePerm))
 					}
@@ -326,7 +327,7 @@ func decker(filename string) {
 				for i := 1; i < tens*10+ones; i++ {
 					if _, err := os.Stat(temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg"); os.IsNotExist(err) {
 						if runtime.GOOS == "windows" {
-							Copy(cache+"/cards/magic/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+							Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
 						} else {
 							os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
 						}
