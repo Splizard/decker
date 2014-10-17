@@ -79,8 +79,8 @@ const (
 	Pokemon = "pokemon"
 )
 
-var pokemonregex *regexp.Regexp
-var pokemonimageregex * regexp.Regexp
+var pokemonregex *regexp.Regexp = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-:]*)/`)
+var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-:]*)`)
 
 func decker(filename string) {
 	defer func() {
@@ -136,11 +136,13 @@ func decker(filename string) {
 		}
 		if line == "Pokemon" || line == "Pokemon Trading Card Game" || line == "Pokémon Trading Card Game" {
 			game = Pokemon
-			pokemonregex = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-:]*)/`)
-			pokemonimageregex = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-:]*)`)
 		}
 		if game == None {
-			handle(errors.New("No game found!"))
+			//handle(errors.New("No game found!"))
+		  	ct.ChangeColor(ct.Red, true, ct.None, false)
+		  	fmt.Print("Warning! ")
+		  	ct.ResetColor()
+			fmt.Println("this deck file does not have a identifyable header, falling back to auto-detection.")
 		}
 		
 		for {
@@ -172,7 +174,7 @@ func decker(filename string) {
 				//Info is so cards can be identified easier.
 				//Such is that in pokemon where lots of cards have the same name.
 				info = ""
-				if game == Pokemon {
+				if game == Pokemon || game == None {
 					if strings.Contains(name, ",") {
 						splits := strings.Split(name, ",")
 						name = splits[0]
@@ -201,20 +203,32 @@ func decker(filename string) {
 					}
 				}
 				
-				if game == Pokemon || os.IsNotExist(err) {
+				if game == Pokemon || game == None || os.IsNotExist(err) {
 				
 					if _, err := os.Stat(cache+"/cards/"+game+"/"); os.IsNotExist(err) {
 						handle(os.MkdirAll(cache+"/cards/"+game+"/", os.ModePerm))
 					}
 					
-					if game == Magic {
+					if game == Magic || game == None {
 				
 						println("getting", "http://mtgimage.com/card/"+name+".jpg")
 						response, err := client.Get("http://mtgimage.com/card/"+name+".jpg")
 						handle(err)
 						if response.StatusCode == 404 {
-							handle(errors.New("card name '"+ name +"' invalid!"))
+							if game == Magic {
+								handle(errors.New("card name '"+ name +"' invalid!"))
+							}
+							if game == None {
+								fmt.Println("Not magic...")
+							}
 						} else {
+							if game == None {
+								game = Magic
+								ct.ChangeColor(ct.Green, true, ct.None, false)
+								fmt.Print("It's OK ")
+								ct.ResetColor()
+								fmt.Println("Game appears to be 'Magic: The Gathering'")
+							}
 							if response.StatusCode != 200 {
 								println("possible error check file! "+ name+ ", status "+response.Status)
 							}
@@ -224,7 +238,8 @@ func decker(filename string) {
 							imageOut.Close()
 						}
 						
-					} else if game == Pokemon {
+					}
+					if game == Pokemon || game == None {
 						//Format url, pkmncards.com does not like an empty text:"" field.
 						var search string
 						if info != "" {
@@ -235,6 +250,7 @@ func decker(filename string) {
 					
 						response, err := client.Get(search)
 						handle(err)
+						
 						if response.StatusCode == 404 {
 							handle(errors.New("card name '"+ name +"' invalid!"))
 						} else if response.StatusCode != 200 {
@@ -279,6 +295,13 @@ func decker(filename string) {
 							} else {
 								if response.StatusCode != 200 {
 									println("possible error check file! "+ name+ ", status "+response.Status)
+								}
+								if game == None {
+									game = Pokemon
+									ct.ChangeColor(ct.Green, true, ct.None, false)
+									fmt.Print("It's OK ")
+									ct.ResetColor()
+									fmt.Println("Game appears to be 'Pokémon Trading Card Game'")
 								}
 								imageOut, err := os.Create(cache+"/cards/pokemon/"+imagename+".jpg")
 								handle(err)
