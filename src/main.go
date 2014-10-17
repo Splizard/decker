@@ -1,4 +1,4 @@
-/* 
+/*
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
@@ -11,27 +11,27 @@
 
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	
+
 	Copyright (C) 2014 Quentin Quaadgras
 */
 package main
 
 import (
-	 "net/http"
-	"os"
+	"bufio"
+	"errors"
+	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"bufio"
-	"strings"
-	"fmt"
-	"flag"
+	"net/http"
+	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
-	"errors"
-	"runtime"
 	"regexp"
-	"net/url"
+	"runtime"
+	"strings"
+	"sync"
 )
 
 import "./ct"
@@ -45,27 +45,27 @@ func handle(err error) {
 
 //A nice copy function that will handle errors.
 func Copy(src, dst string) (int64, error) {
-  src_file, err := os.Open(src)
-  if err != nil {
-    return 0, err
-  }
-  defer src_file.Close()
+	src_file, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer src_file.Close()
 
-  src_file_stat, err := src_file.Stat()
-  if err != nil {
-    return 0, err
-  }
+	src_file_stat, err := src_file.Stat()
+	if err != nil {
+		return 0, err
+	}
 
-  if !src_file_stat.Mode().IsRegular() {
-    return 0, fmt.Errorf("%s is not a regular file", src)
-  }
+	if !src_file_stat.Mode().IsRegular() {
+		return 0, fmt.Errorf("%s is not a regular file", src)
+	}
 
-  dst_file, err := os.Create(dst)
-  if err != nil {
-    return 0, err
-  }
-  defer dst_file.Close()
-  return io.Copy(dst_file, src_file)
+	dst_file, err := os.Create(dst)
+	if err != nil {
+		return 0, err
+	}
+	defer dst_file.Close()
+	return io.Copy(dst_file, src_file)
 }
 
 var deck string
@@ -77,8 +77,8 @@ func init() {
 
 //Define the current card games decker supports.
 const (
-	None = ""
-	Magic = "magic"
+	None    = ""
+	Magic   = "magic"
 	Pokemon = "pokemon"
 )
 
@@ -93,43 +93,41 @@ func decker(filename string) {
 	//Don't crash the whole program when a bad error panics a goroutine.
 	//Simply report and let the others continue.
 	defer func() {
-            if r := recover(); r != nil {
-                    var ok bool
-                   	_, ok = r.(error)
-                    if !ok {
-                    		fmt.Print("[ERROR] ")
-                            fmt.Println(fmt.Errorf("file: "+filename+": %v", r))
-                            ct.ChangeColor(ct.Red, true, ct.None, false)
-                            fmt.Print("Failed ")
-                            ct.ResetColor()
-                            fmt.Println(filename+"!")
-                            return
-                    }
-            }
-    }()
-    //Leave the wait group.
-    if threading {
-   	 	defer wg.Done()
-   	}
-
-
-	var name string			//The name of the card.
-	var imagename string 	//This could different to the card name eg. Pokemon.
-	var info string			//Extra details to identify the card, mainly for Pokemon.
-	
-	var client http.Client
-	
-	var game string = None 	//The current game as defined by the game constants.
-	
-	
-	//output file, this is to keep track of per-file outputs when running in parallel.
-	var output = output	
+		if r := recover(); r != nil {
+			var ok bool
+			_, ok = r.(error)
+			if !ok {
+				fmt.Print("[ERROR] ")
+				fmt.Println(fmt.Errorf("file: "+filename+": %v", r))
+				ct.ChangeColor(ct.Red, true, ct.None, false)
+				fmt.Print("Failed ")
+				ct.ResetColor()
+				fmt.Println(filename + "!")
+				return
+			}
+		}
+	}()
+	//Leave the wait group.
 	if threading {
-		output = filepath.Base(filename)+".jpg"
+		defer wg.Done()
 	}
-	
+
+	var name string      //The name of the card.
+	var imagename string //This could different to the card name eg. Pokemon.
+	var info string      //Extra details to identify the card, mainly for Pokemon.
+
+	var client http.Client
+
+	var game string = None //The current game as defined by the game constants.
+
+	//output file, this is to keep track of per-file outputs when running in parallel.
+	var output = output
+	if threading {
+		output = filepath.Base(filename) + ".jpg"
+	}
+
 	var usingCache bool //Whether we have started using cached files or not.
-	
+
 	//temp stores the location of assigned temp directory, eg /tmp/decker-893282948 on linux.
 	var temp string
 	temp, err := ioutil.TempDir("", "decker")
@@ -139,15 +137,15 @@ func decker(filename string) {
 			os.RemoveAll(temp)
 		}
 	}()
-	
+
 	//Open the deck file. TODO maybe support http:// decks.
 	if file, err := os.Open(filename); err == nil {
-	
+
 		//Read the first line and trim the space.
 		reader := bufio.NewReader(file)
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
-		
+
 		//If possible we want to indentify the name of the Card game.
 		//These names should be at the top of a deck file.
 		//
@@ -160,16 +158,16 @@ func decker(filename string) {
 		}
 		//If there is no header, make a big deal about it.
 		if game == None {
-		  	ct.ChangeColor(ct.Red, true, ct.None, false)
-		  	fmt.Print("Warning! ")
-		  	ct.ResetColor()
+			ct.ChangeColor(ct.Red, true, ct.None, false)
+			fmt.Print("Warning! ")
+			ct.ResetColor()
 			fmt.Println("this deck file does not have a identifyable header, falling back to auto-detection.")
-			
+
 			//Complain to the user, they have committed a great sin.
 			fmt.Println("It is STRONGLY recommended that you add a identifier at the top of the deck file.")
 			fmt.Println("This makes it easier for people to recognise the card game...")
 		}
-		
+
 		//Loop through the file.
 		for {
 			line, err := reader.ReadString('\n') //Parse line-by-line.
@@ -179,19 +177,19 @@ func decker(filename string) {
 				}
 			}
 			handle(err)
-			
+
 			//Trim the spacing. TODO trim spacing in between words that are used for nice reading.
 			line = strings.TrimSpace(line)
-			
+
 			//Cards are identified by having an 'x' at the beginning of the line or a number.
 			//Anyother character is a comment.
 			//Not many words start with x so we should be pretty safe, let's not worry about dealing with special cases.
 			//This may look like a complicated if statement but don't worry about understanding it.. it works.
 			//That being said, feel free to simplify if you are one of those people.
-			if len(line) > 2 && (((line[1] == 'x' || line[2] == 'x') && (line[0] > 48 && line[0] < 58)) || 
-								(line[0] > 48 && line[1] < 58 && line[0] > 48 && line[1] < 58) ||
-								(line[0] == 'x' && line[1] > 48 && line[1] < 58)) {
-			
+			if len(line) > 2 && (((line[1] == 'x' || line[2] == 'x') && (line[0] > 48 && line[0] < 58)) ||
+				(line[0] > 48 && line[1] < 58 && line[0] > 48 && line[1] < 58) ||
+				(line[0] == 'x' && line[1] > 48 && line[1] < 58)) {
+
 				//We need to seperate the name from the number of cards.
 				//This does that.
 				if line[1] == 'x' {
@@ -201,10 +199,10 @@ func decker(filename string) {
 				} else {
 					name = strings.TrimSpace(line[2:])
 				}
-				
+
 				//Need to reset this to default value for each card.
 				imagename = ""
-				
+
 				//This bit recognises extra information to be queried along with the card name.
 				//This solves the problem with card games where there are many cards of the same name.
 				//Looking at you Pokemon -.-
@@ -225,7 +223,7 @@ func decker(filename string) {
 					if strings.Contains(name, " with ") {
 						splits := strings.Split(name, " with ")
 						name = splits[0]
-						info =strings.TrimSpace(splits[1])
+						info = strings.TrimSpace(splits[1])
 					}
 					if strings.Contains(name, " that has ") {
 						splits := strings.Split(name, " that has ")
@@ -233,44 +231,44 @@ func decker(filename string) {
 						info = strings.TrimSpace(splits[1])
 					}
 				}
-				
+
 				//Let's check if the card we are looking for has already been downloaded.
 				//This doesn't work for pokemon because I haven't found a suitable way to cache pokemon cards by name.
-				_, err := os.Stat(cache+"/cards/"+game+"/"+name+".jpg")
+				_, err := os.Stat(cache + "/cards/" + game + "/" + name + ".jpg")
 				if !os.IsNotExist(err) {
 					if !usingCache {
 						fmt.Println("using cached files")
 						usingCache = true
 					}
 				}
-				
+
 				//So in that case we must continue to find the image if we are using pokemon, or if of course the image is not cached.
 				//If we don't know what game we are using then sure we need to use the internet to auto detect the card name.
 				if game == Pokemon || game == None || os.IsNotExist(err) {
-				
+
 					//Create a cache folder for the game.
 					//Unfortunately we also get a empty "none" folder.
 					//I'm not going to fix this because it could be useful in the future somehow.
-					if _, err := os.Stat(cache+"/cards/"+game+"/"); os.IsNotExist(err) {
+					if _, err := os.Stat(cache + "/cards/" + game + "/"); os.IsNotExist(err) {
 						handle(os.MkdirAll(cache+"/cards/"+game+"/", os.ModePerm))
 					}
-					
+
 					//Autodetect/Download Magic cards.
 					if game == Magic || game == None {
-						
+
 						if game == Magic {
 							fmt.Println("getting", "http://mtgimage.com/card/"+name+".jpg")
 						}
-						
+
 						//For magic cards it is easy we just request the name from mtgimage.com and tada! we have an image.
-						response, err := client.Get("http://mtgimage.com/card/"+name+".jpg")
+						response, err := client.Get("http://mtgimage.com/card/" + name + ".jpg")
 						handle(err)
-						
+
 						//Unless we get a 404 which means the name wasn't given correctly.
 						if response.StatusCode == 404 {
 							if game == Magic {
 								//Complain about it.
-								handle(errors.New("card name '"+ name +"' seems to be invalid!\nCheck http://mtgimage.com/card/"+name+".jpg"))
+								handle(errors.New("card name '" + name + "' seems to be invalid!\nCheck http://mtgimage.com/card/" + name + ".jpg"))
 							}
 							if game == None {
 								//Or it just means this is not a magic deck.
@@ -287,85 +285,85 @@ func decker(filename string) {
 							}
 							if response.StatusCode != 200 {
 								//Hmmm why is the status code not 200?
-								println("possible error check file! "+cache+"/cards/magic/"+name+".jpg, status "+response.Status)
+								println("possible error check file! " + cache + "/cards/magic/" + name + ".jpg, status " + response.Status)
 							}
 							//Download and Save image.
-							imageOut, err := os.Create(cache+"/cards/magic/"+name+".jpg")
+							imageOut, err := os.Create(cache + "/cards/magic/" + name + ".jpg")
 							handle(err)
 							io.Copy(imageOut, response.Body)
 							imageOut.Close()
 						}
-						
+
 					}
 					//Autodetect/Download Pokemon cards.
 					if game == Pokemon || game == None {
-					
+
 						//Format url, pkmncards.com does not like an empty text:"" field.
 						var search string
 						if info != "" {
-							search = "http://pkmncards.com/?s="+url.QueryEscape(name)+"+text%3A%22"+url.QueryEscape(info)+"%22&display=scan&sort=date"
+							search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "%22&display=scan&sort=date"
 						} else {
-							search = "http://pkmncards.com/?s="+url.QueryEscape(name)+"%22&display=scan&sort=date"
+							search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "%22&display=scan&sort=date"
 						}
-					
+
 						//This returns the search results for the card.
 						response, err := client.Get(search)
 						handle(err)
-						
+
 						if response.StatusCode == 404 {
 							//No results, complain, doubt users spelling ability.
-							handle(errors.New("card name '"+ name +"' invalid! (Check spelling?)"))
+							handle(errors.New("card name '" + name + "' invalid! (Check spelling?)"))
 						} else if response.StatusCode != 200 {
 							//Not sure what happens here.
-							fmt.Println("possible error check card! "+ name+ ", status "+response.Status)
+							fmt.Println("possible error check card! " + name + ", status " + response.Status)
 						}
-						
+
 						//We need find the first result.
 						body, err := ioutil.ReadAll(response.Body)
 						handle(err)
-						
+
 						//Magical regex to our rescue.
 						card := string(pokemonregex.Find([]byte(body)))
 						if card == "" {
 							//regex failed?
-							handle(errors.New("card name '"+ name +"' not found!\nCheck "+search))
+							handle(errors.New("card name '" + name + "' not found!\nCheck " + search))
 						}
-						
+
 						//Now we need to find the link to the actual image.
 						response, err = client.Get(card)
 						body, err = ioutil.ReadAll(response.Body)
 						handle(err)
-						
+
 						//Regex!
 						submatches := pokemonimageregex.FindStringSubmatch(string(body))
 						if len(submatches) < 2 {
 							//Indeed.. a bug on pkmncards.com :3
-							handle(errors.New("No image found for card "+name+", this could be a bug !"))
+							handle(errors.New("No image found for card " + name + ", this could be a bug !"))
 						}
 						image := string(submatches[1])
-						
+
 						//Extract the filename for the cache.
 						path, err := url.Parse(image)
 						handle(err)
 						imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
-						
+
 						//Now we can check if we already have the image cached, otherwise download it.
-						if _, err := os.Stat(cache+"/cards/"+game+"/"+imagename+".jpg"); !os.IsNotExist(err) {
+						if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
 							if !usingCache {
 								fmt.Println("using cached files")
 								usingCache = true
 							}
 						} else {
-						
+
 							fmt.Println("getting", image)
 							response, err = client.Get(image)
 							handle(err)
 							if response.StatusCode == 404 {
 								//Broken link?
-								handle(errors.New("broken link? "+image))
+								handle(errors.New("broken link? " + image))
 							} else {
 								if response.StatusCode != 200 {
-									fmt.Println("possible error check file! "+cache+"/cards/pokemon/"+imagename+".jpg, status "+response.Status)
+									fmt.Println("possible error check file! " + cache + "/cards/pokemon/" + imagename + ".jpg, status " + response.Status)
 								}
 								if game == None {
 									//We have succesfully auto-detected that this deck is Pokemon! Hooray!
@@ -376,56 +374,55 @@ func decker(filename string) {
 									fmt.Println("Game appears to be 'Pokémon Trading Card Game'")
 								}
 								//Download and Save image.
-								imageOut, err := os.Create(cache+"/cards/pokemon/"+imagename+".jpg")
+								imageOut, err := os.Create(cache + "/cards/pokemon/" + imagename + ".jpg")
 								handle(err)
 								io.Copy(imageOut, response.Body)
 								imageOut.Close()
 							}
 						}
 					}
-					
+
 				}
-				
+
 				//If the imagename is different from the card name, we replace it now so everything works.
 				if imagename != "" {
 					name = imagename
 				}
-				
+
 				//Copy the card from cache to the temp directory.
-				if _, err := os.Stat(temp+"/"+name+".jpg"); os.IsNotExist(err) {
+				if _, err := os.Stat(temp + "/" + name + ".jpg"); os.IsNotExist(err) {
 					_, err := Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+".jpg")
 					handle(err)
 				}
-			
+
 				//Figure out how many cards there are in the deck.
 				//Maximum is 99 otherwise unpredictable things will happen.
 				//Should probably note this somewhere.
-				
-				
+
 				//More complicated code that just works.
 				var tens int
 				var ones int
-				
+
 				//For in the style of:
 				//
 				//	1x Card Name
 				//  1  Card Name
 				//
 				if line[0] != 'x' {
-					if (line[1] > 48 && line[1] < 58) {
+					if line[1] > 48 && line[1] < 58 {
 						tens = int(line[0] - 48)
 						ones = int(line[1] - 48)
 					} else {
 						ones = int(line[0] - 48)
 					}
-					
-				//For in the style of:
-				//
-				//	x1 Card Name
-				//
+
+					//For in the style of:
+					//
+					//	x1 Card Name
+					//
 				} else if line[0] == 'x' {
 					if line[2] > 48 && line[2] < 58 {
-						if (line[1] > 48 && line[1] < 58) {
+						if line[1] > 48 && line[1] < 58 {
 							tens = int(line[1] - 48)
 						}
 						ones = int(line[2] - 48)
@@ -433,32 +430,32 @@ func decker(filename string) {
 						ones = int(line[1] - 48)
 					}
 				}
-				
+
 				//Create copies of the card in the temporary directory.
 				for i := 1; i < tens*10+ones; i++ {
-				
-					if _, err := os.Stat(temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg"); os.IsNotExist(err) {
-					
+
+					if _, err := os.Stat(temp + "/" + name + " " + fmt.Sprint(i+1) + ".jpg"); os.IsNotExist(err) {
+
 						//Symbolic links don't like windows very much.. So we'll just have to copy the file multiple times.
 						if runtime.GOOS == "windows" {
 							Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
 						} else {
 							os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
 						}
-						
+
 					}
 				}
 			}
 		}
-		
+
 		//Now we actually generate the image.
-		fmt.Println("Generating image for "+filename+" to "+output+"...")
-		
+		fmt.Println("Generating image for " + filename + " to " + output + "...")
+
 		//We use imagemagick's montage to generate the image,
 		//somebody could code it in go using it's image library but I can't be bothered as imagemagick already does a perfect job.
 		//Why rewrite something that already exists when you can just glue a bunch of different programs together?
 		command := "montage"
-		
+
 		//Windows doesn't like it when you drag a deck file onto decker from a different folder.
 		//Then it makes the different folder the current working directory and complains
 		//when it can't find montage.exe that you packaged in the same folder.
@@ -471,18 +468,18 @@ func decker(filename string) {
 				command += "/montage"
 			}
 		}
-		
+
 		//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
 		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585!+0+0", temp+"/*.jpg", output)
 		err := montage.Run()
-		
+
 		//Yay we did it!
 		handle(err)
 		ct.ChangeColor(ct.Green, true, ct.None, false)
 		fmt.Print("Done ")
 		ct.ResetColor()
-		fmt.Println(filename+"!")
-		
+		fmt.Println(filename + "!")
+
 	} else {
 		//The file you provided doesn't seem to exist or something.
 		fmt.Println(err.Error())
@@ -504,16 +501,16 @@ func main() {
 
 	//Figure out where we gonna put our cache.
 	//If for some reason we can't write to these directories, we're screwed... BUG?
-	cache = os.Getenv("HOME")+"/.cache/decker"
-	
+	cache = os.Getenv("HOME") + "/.cache/decker"
+
 	if runtime.GOOS == "windows" {
-		cache = os.Getenv("HOMEDRIVE")+os.Getenv("HOMEPATH")
+		cache = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		if cache == "" {
 			cache = os.Getenv("USERPROFILE")
 		}
 		cache += "/AppData/Roaming/decker"
 	}
-	
+
 	//Parse the commandline arguments.
 	flag.Parse()
 
@@ -522,7 +519,7 @@ func main() {
 		fmt.Println("usage: decker [OPTIONS] [FILE]")
 		return
 	}
-	
+
 	//How many decks do we need to create sir?
 	//Only one? are you sure you don't want to bulk generate decks?
 	//terrible shame.
@@ -535,14 +532,14 @@ func main() {
 	} else {
 		decker(flag.Arg(0))
 	}
-	
+
 	//Wait for everybody to finish.
 	wg.Wait()
-	
+
 	//On windows people don't use a command line so we better give them a chance to read any error messages :3
 	if runtime.GOOS == "windows" {
 		fmt.Println("Press 'Enter' to close...")
 		reader := bufio.NewReader(os.Stdin)
-   		reader.ReadString('\n')
+		reader.ReadString('\n')
 	}
 }
