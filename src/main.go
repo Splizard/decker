@@ -195,11 +195,9 @@ func decker(filename string) {
 				_, err := os.Stat(cache+"/cards/"+game+"/"+name+".jpg")
 				
 				if !os.IsNotExist(err) {
-					if os.IsNotExist(err) {
-						if !usingCache {
-							fmt.Println("using cached files")
-							usingCache = true
-						}
+					if !usingCache {
+						fmt.Println("using cached files")
+						usingCache = true
 					}
 				}
 				
