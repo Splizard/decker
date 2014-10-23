@@ -172,9 +172,7 @@ func decker(filename string) {
 		for {
 			line, err := reader.ReadString('\n') //Parse line-by-line.
 			if err == io.EOF {
-				if len(line) == 0 {
-					break
-				}
+				break
 			}
 			handle(err)
 
