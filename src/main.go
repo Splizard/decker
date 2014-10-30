@@ -409,7 +409,7 @@ func decker(filename string) {
 				//  1  Card Name
 				//
 				if line[0] != 'x' {
-					if line[1] > 48 && line[1] < 58 {
+					if line[1] > 47 && line[1] < 58 {
 						tens = int(line[0] - 48)
 						ones = int(line[1] - 48)
 					} else {
@@ -421,8 +421,8 @@ func decker(filename string) {
 					//	x1 Card Name
 					//
 				} else if line[0] == 'x' {
-					if line[2] > 48 && line[2] < 58 {
-						if line[1] > 48 && line[1] < 58 {
+					if line[2] > 47 && line[2] < 58 {
+						if line[1] > 47 && line[1] < 58 {
 							tens = int(line[1] - 48)
 						}
 						ones = int(line[2] - 48)
