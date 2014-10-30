@@ -121,9 +121,10 @@ func decker(filename string) {
 	var game string = None //The current game as defined by the game constants.
 
 	//output file, this is to keep track of per-file outputs when running in parallel.
+	//we want to output to png.
 	var output = output
 	if threading {
-		output = filepath.Base(filename) + ".jpg"
+		output = filepath.Base(filename) + ".png"
 	}
 
 	var usingCache bool //Whether we have started using cached files or not.
@@ -468,11 +469,15 @@ func decker(filename string) {
 		}
 
 		//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
-		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "60", "-geometry", "409x585!+0+0", temp+"/*.jpg", output)
+		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
 		err := montage.Run()
+		handle(err)
+		
+		//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
+		err = CropDeck(output)
+		handle(err)
 
 		//Yay we did it!
-		handle(err)
 		ct.ChangeColor(ct.Green, true, ct.None, false)
 		fmt.Print("Done ")
 		ct.ResetColor()
