@@ -80,6 +80,7 @@ const (
 	None    = ""
 	Magic   = "magic"
 	Pokemon = "pokemon"
+	Custom  = "custom"
 )
 
 //Regexes needed for parsing results from pkmncards.com
@@ -156,6 +157,9 @@ func decker(filename string) {
 		}
 		if line == "Pokemon" || line == "Pokemon Trading Card Game" || line == "Pokémon Trading Card Game" {
 			game = Pokemon
+		}
+		if line == "CUSTOM" || line == "Custom" {
+			game = Custom
 		}
 		//If there is no header, make a big deal about it.
 		if game == None {
@@ -380,7 +384,49 @@ func decker(filename string) {
 							}
 						}
 					}
+					if game == Custom || game == None {
+						if game == Custom {
+							fmt.Println("getting", name)
+						}
 
+						//For custom cards, simply download the image with the provided link.
+						response, err := client.Get(name)
+						handle(err)
+
+						//Unless we get a 404 which means the link is probably broken.
+						if response.StatusCode == 404 {
+							if game == Custom {
+								//Complain about it.
+								handle(errors.New("link '" + name + "' seems to be broken!\nCheck it!"))
+							}
+							if game == None {
+								//Or it just means this is not a custom deck.
+								fmt.Println("Not a custom deck...")
+							}
+						} else {
+							path, err := url.Parse(name)
+							handle(err)
+							if game == None {
+								//We have succesfully auto-detected that this deck is a Custom one! Hooray!
+								game = Custom
+								ct.ChangeColor(ct.Green, true, ct.None, false)
+								fmt.Print("It's OK ")
+								ct.ResetColor()
+								fmt.Println("This seems to be a custom deck.")
+							}
+							if response.StatusCode != 200 {
+								//Hmmm why is the status code not 200?
+								println("possible error check file! " + cache + "/cards/magic/" + filepath.Base(path.Path)+ " status " + response.Status)
+							}
+							//Download and Save image.
+							imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
+							imageOut, err := os.Create(cache + "/cards/custom/" + imagename + ".jpg")
+							handle(err)
+							io.Copy(imageOut, response.Body)
+							imageOut.Close()
+						}
+
+					}
 				}
 
 				//If the imagename is different from the card name, we replace it now so everything works.
