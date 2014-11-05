@@ -174,9 +174,9 @@ func decker(filename string) {
 			//This may look like a complicated if statement but don't worry about understanding it.. it works.
 			//That being said, feel free to simplify if you are one of those people.
 			if len(line) > 2 && (((line[1] == 'x' || line[2] == 'x') && (line[0] > 48 && line[0] < 58)) ||
-				(line[0] > 48 && line[1] < 58 && line[0] > 48 && line[1] < 58) ||
+				(line[0] > 48 && line[0] < 58) ||
 				(line[0] == 'x' && line[1] > 48 && line[1] < 58)) {
-
+				
 				//We need to seperate the name from the number of cards.
 				//This does that.
 				if line[1] == 'x' {
