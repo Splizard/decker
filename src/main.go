@@ -355,8 +355,11 @@ func decker(filename string) {
 
 		//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
 		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
-		err := montage.Run()
-		handle(err)
+		text, err := montage.CombinedOutput()
+		if err != nil {
+			fmt.Print(string(text))
+			handle(err)
+		}
 		
 		//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
 		err = CropDeck(output)
