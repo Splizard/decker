@@ -87,7 +87,11 @@ func init() {
 			
 			if len(submatches) < 1 {
 				//Indeed.. a bug on wikia :3
-				Handle(errors.New("No image found for card " + name + ", this could be a bug !"))
+				if !detecting {
+					Handle(errors.New("No image found for card " + name + ", this could be a bug !"))
+				} else {
+					return None
+				}
 			}
 
 		}
