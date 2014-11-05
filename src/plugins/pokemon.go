@@ -17,8 +17,8 @@ func init() {
 	var client http.Client
 	
 	//Regexes needed for parsing results from pkmncards.com
-	var pokemonregex *regexp.Regexp = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-:]*)/`)
-	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-:]*)`)
+	var pokemonregex *regexp.Regexp = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-,:]*)/`)
+	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-,:]*)`)
 	
 	RegisterHeaders(Pokemon, []string{"Pokémon Trading Card Game", "Pokemon Trading Card Game", "Pokemon"})
 	
