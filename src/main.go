@@ -539,10 +539,8 @@ func main() {
 	//Wait for everybody to finish.
 	wg.Wait()
 
-	//On windows people don't use a command line so we better give them a chance to read any error messages :3
-	if runtime.GOOS == "windows" {
-		fmt.Println("Press 'Enter' to close...")
-		reader := bufio.NewReader(os.Stdin)
-		reader.ReadString('\n')
-	}
+	//Normal people don't use a command line so we better give them a chance to read any error messages :3
+	fmt.Println("Press 'Enter' to close...")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 }
