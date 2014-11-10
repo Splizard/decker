@@ -2,7 +2,7 @@ Package: decker
 Version: 0.5
 Section: base
 Priority: optional
-Architecture: amd64
+Architecture: ARCHITECTURE
 Installed-Size: SIZE
 Depends: imagemagick
 Maintainer: Splizard <splizard@splizard.com>
