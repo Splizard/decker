@@ -1,0 +1,9 @@
+Package: decker
+Version: 0.5
+Section: base
+Priority: optional
+Architecture: amd64
+Installed-Size: SIZE
+Depends: imagemagick
+Maintainer: Splizard <splizard@splizard.com>
+Description: Decker! create card decks for Tabletop Simulator with simple text files.

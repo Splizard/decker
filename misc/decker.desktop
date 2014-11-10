@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Decker
+Exec=/usr/bin/decker %u
+MimeType=text/x-deck
+Terminal=true
+Type=Application
+Name[en_NZ]=decker
