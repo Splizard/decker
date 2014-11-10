@@ -69,7 +69,7 @@ var deck string
 var output string //The output file.
 
 func init() {
-	flag.StringVar(&output, "o", "deck.jpg", "output file")
+	flag.StringVar(&output, "o", "", "output file")
 }
 
 //Define the current card games decker supports.
@@ -111,8 +111,8 @@ func decker(filename string) {
 	//output file, this is to keep track of per-file outputs when running in parallel.
 	//we want to output to png.
 	var output = output
-	if threading {
-		output = filepath.Base(filename) + ".jpg"
+	if threading || output == "" {
+		output = filepath.Dir(filename)+"/"+filepath.Base(filename) + ".jpg"
 	}
 
 	var usingCache bool //Whether we have started using cached files or not.
