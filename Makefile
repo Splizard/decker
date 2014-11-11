@@ -3,6 +3,10 @@
 all:
 	go build -o ./decker ./src
 	
+32:
+	GOARCH=386 \
+	go build -o ./decker ./src	
+	
 install:
 	cp ./decker /usr/bin/decker
 	cp ./misc/decker.desktop /usr/share/applications/
@@ -19,7 +23,13 @@ deb:
 	#Create the folders.
 	mkdir -p ./pkg/deb/DEBIAN
 	cp ./misc/version.info ./pkg/deb/DEBIAN/control
-	echo "#!/bin/sh -e\nupdate-mime-database /usr/share/mime/\nupdate-desktop-database" >> ./pkg/deb/DEBIAN/postinst
+	if file decker | grep "64-bit"; then \
+		sed "s/ARCHITECTURE/amd64/" -i ./pkg/deb/DEBIAN/control; fi
+	
+	if file decker | grep "32-bit"; then \
+		sed "s/ARCHITECTURE/i386/" -i ./pkg/deb/DEBIAN/control; fi
+	
+	echo "#!/bin/sh -e\nupdate-desktop-database" >> ./pkg/deb/DEBIAN/postinst
 	chmod +x ./pkg/deb/DEBIAN/postinst
 	echo "2.0" > ./pkg/deb/debian-binary
 	
@@ -33,7 +43,9 @@ deb:
 	cp ./misc/decker.desktop ./pkg/deb/sysroot/usr/share/applications/
 	cp ./misc/mime.xml ./pkg/deb/sysroot/usr/share/mime/packages/
 	
-	#Permissions
+	sed "s/SIZE/$(shell stat -c %s ./pkg/deb)/" -i ./pkg/deb/DEBIAN/control
+	
+	#Permissions.
 	find ./pkg/deb/ -type d -exec chmod 0755 {} \;
 	find ./pkg/deb/ -type f -exec chmod go-w {} \;
 	chown -R root:root ./pkg/deb/
@@ -45,6 +57,7 @@ deb:
 	find ./pkg/deb/ -type f -exec chmod go-w {} \;
 	chown -R root:root ./pkg/deb/
 	
+	#Clean up and build.
 	rm -rf ./pkg/deb/sysroot
 	rm -rf ./pkg/deb/DEBIAN
 	cd ./pkg/deb/ && ar r decker-0.5.deb debian-binary control.tar.gz data.tar.gz
