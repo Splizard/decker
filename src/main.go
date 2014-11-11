@@ -255,6 +255,8 @@ func decker(filename string) {
 					
 					pass:
 				} else {
+				
+					var cache = cache
 
 					//Let's check if the card we are looking for has already been downloaded.
 					//Plugins may handle this by themselves.
@@ -263,6 +265,13 @@ func decker(filename string) {
 							fmt.Println("using cached files for "+filename)
 							usingCache = true
 						}
+					} else if _, err := os.Stat(filepath.Dir(filename) + "/cards/" + game + "/" + imagename + ".jpg"); info == "" && !os.IsNotExist(err) {
+						if !usingCache {
+							fmt.Println("using cached files for "+filename)
+							usingCache = true
+						}
+						cache = filepath.Dir(filename)
+						
 					} else {
 						plugins.Run(game, name, info)
 					}
