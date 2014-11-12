@@ -31,7 +31,6 @@ func init() {
 		//Format url, pkmncards.com does not like an empty text:"" field.
 		var oldname string = name
 		var search string
-		var imagename string
 		
 		//This bit recognises extra information to be queried along with the card name.
 		//This solves the problem with card games where there are many cards of the same name.
@@ -59,6 +58,8 @@ func init() {
 			name = splits[0]
 			info = strings.TrimSpace(splits[1])
 		}
+		
+		var imagename string = name
 		
 		if info != "" {
 			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "%22&display=scan&sort=date"
@@ -114,13 +115,13 @@ func init() {
 		path, err := url.Parse(image)
 		Handle(err)
 		
-		imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
 		if info != "" {
+			imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
 			SetImageName(Pokemon, oldname, imagename)
 		}
 
 		//Now we can check if we already have the image cached, otherwise download it.
-		if _, err := os.Stat(DeckerCachePath  + "/cards/pokemon/" + imagename + ".jpg"); !os.IsNotExist(err) {
+		if _, err := os.Stat(DeckerCachePath  + "/cards/pokemon/" + name + ".jpg"); !os.IsNotExist(err) {
 			return Pokemon
 		} else {
 			if ! detecting {

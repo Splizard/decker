@@ -187,6 +187,7 @@ func decker(filename string) {
 				} else {
 					name = strings.TrimSpace(line[2:])
 				}
+				name = strings.Join(strings.Fields(name), " ")
 				
 				if autodetecting {
 					
