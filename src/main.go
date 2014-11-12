@@ -187,33 +187,6 @@ func decker(filename string) {
 				} else {
 					name = strings.TrimSpace(line[2:])
 				}
-
-				//This bit recognises extra information to be queried along with the card name.
-				//This solves the problem with card games where there are many cards of the same name.
-				//Looking at you Pokemon -.-
-				//So people who don't know their pokemon set names can be like:
-				//
-				//	1x Pikachu with Thundershock
-				//  1x Pikachu, Thundershock
-				//  1x Pikachu that has Thundershock
-				//
-				//Hopefully they get the card they want or at the very least they get a Pickachu that knows Thundershock.
-				info = ""
-				if strings.Contains(name, ",") {
-					splits := strings.Split(name, ",")
-					name = splits[0]
-					info = strings.TrimSpace(splits[1])
-				}
-				if strings.Contains(name, " with ") {
-					splits := strings.Split(name, " with ")
-					name = splits[0]
-					info = strings.TrimSpace(splits[1])
-				}
-				if strings.Contains(name, " that has ") {
-					splits := strings.Split(name, " that has ")
-					name = splits[0]
-					info = strings.TrimSpace(splits[1])
-				}
 				
 				if autodetecting {
 					
@@ -262,12 +235,12 @@ func decker(filename string) {
 					
 					//Let's check if the card we are looking for has already been downloaded.
 					//Plugins may handle this by themselves.
-					if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); info == "" && !os.IsNotExist(err) {
+					if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
 						if !usingCache {
 							fmt.Println("using cached files for "+filename)
 							usingCache = true
 						}
-					} else if _, err := os.Stat(filepath.Dir(filename) + "/cards/" + game + "/" + imagename + ".jpg"); info == "" && !os.IsNotExist(err) {
+					} else if _, err := os.Stat(filepath.Dir(filename) + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
 						if !usingCache {
 							fmt.Println("using cached files for "+filename)
 							usingCache = true
@@ -276,6 +249,9 @@ func decker(filename string) {
 						
 					} else {
 						plugins.Run(game, name, info)
+						if i := plugins.GetImageName(game, name); i != "" {
+							imagename = i
+						}
 					}
 					
 					//If the imagename is different from the card name, we replace it now so everything works.

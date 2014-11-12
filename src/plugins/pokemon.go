@@ -29,8 +29,36 @@ func init() {
 		}
 
 		//Format url, pkmncards.com does not like an empty text:"" field.
+		var oldname string = name
 		var search string
 		var imagename string
+		
+		//This bit recognises extra information to be queried along with the card name.
+		//This solves the problem with card games where there are many cards of the same name.
+		//Looking at you Pokemon -.-
+		//So people who don't know their pokemon set names can be like:
+		//
+		//	1x Pikachu with Thundershock
+		//  1x Pikachu, Thundershock
+		//  1x Pikachu that has Thundershock
+		//
+		//Hopefully they get the card they want or at the very least they get a Pickachu that knows Thundershock.
+		info = ""
+		if strings.Contains(name, ",") {
+			splits := strings.Split(name, ",")
+			name = splits[0]
+			info = strings.TrimSpace(splits[1])
+		}
+		if strings.Contains(name, " with ") {
+			splits := strings.Split(name, " with ")
+			name = splits[0]
+			info = strings.TrimSpace(splits[1])
+		}
+		if strings.Contains(name, " that has ") {
+			splits := strings.Split(name, " that has ")
+			name = splits[0]
+			info = strings.TrimSpace(splits[1])
+		}
 		
 		if info != "" {
 			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "%22&display=scan&sort=date"
@@ -88,7 +116,7 @@ func init() {
 		
 		imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
 		if info != "" {
-			SetImageName(Pokemon, name, imagename)
+			SetImageName(Pokemon, oldname, imagename)
 		}
 
 		//Now we can check if we already have the image cached, otherwise download it.
