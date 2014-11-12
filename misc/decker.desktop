@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Decker
-Exec=/usr/bin/decker %u
+Exec=/usr/bin/decker %F
 MimeType=text/x-deck
 Terminal=true
 Type=Application

@@ -374,6 +374,23 @@ var threading bool
 //Where the cache at.
 var cache string
 
+func walker(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return nil
+	}
+	
+	if info.Mode().IsDir() {
+		files, err := filepath.Glob(path+"/*.deck")
+		handle(err)
+		for _, file := range files {
+			wg.Add(1)
+			go decker(file)
+		}
+	}
+	
+	return filepath.SkipDir
+}
+
 func main() {
 
 	//Figure out where we gonna put our cache.
@@ -420,11 +437,24 @@ func main() {
 	if len(flag.Args()) > 1 {
 		threading = true
 		for _, v := range flag.Args() {
-			wg.Add(1)
-			go decker(v)
+			if info, err := os.Stat(v); !os.IsNotExist(err) {
+				if info.Mode().IsDir() {
+					filepath.Walk(v, walker)
+				} else {
+					wg.Add(1)
+					go decker(v)
+				}
+			}
 		}
 	} else {
-		decker(flag.Arg(0))
+		if info, err := os.Stat(flag.Arg(0)); !os.IsNotExist(err) {
+			if info.Mode().IsDir() {
+				threading = true
+				filepath.Walk(flag.Arg(0), walker)
+			} else {
+				decker(flag.Arg(0))
+			}
+		}
 	}
 
 	//Wait for everybody to finish.
