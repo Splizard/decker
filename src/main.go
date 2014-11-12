@@ -214,11 +214,6 @@ func decker(filename string) {
 					info = strings.TrimSpace(splits[1])
 				}
 				
-				imagename := name
-				if i := plugins.GetImageName(game, name); i != "" {
-					imagename = i
-				}
-				
 				if autodetecting {
 					
 					possibilities = plugins.Autodetect(name, info)
@@ -257,7 +252,13 @@ func decker(filename string) {
 				} else {
 				
 					var cache = cache
+					var imagename = name
 
+					//If the imagename is different from the card name,
+					if i := plugins.GetImageName(game, name); i != "" {
+						imagename = i
+					}
+					
 					//Let's check if the card we are looking for has already been downloaded.
 					//Plugins may handle this by themselves.
 					if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); info == "" && !os.IsNotExist(err) {
@@ -275,11 +276,9 @@ func decker(filename string) {
 					} else {
 						plugins.Run(game, name, info)
 					}
-
+					
 					//If the imagename is different from the card name, we replace it now so everything works.
-					if plugins.GetImageName(game, name) != "" {
-						name = plugins.GetImageName(game, name)
-					}
+					name = imagename
 
 					//Copy the card from cache to the temp directory.
 					if _, err := os.Stat(temp + "/" + name + ".jpg"); os.IsNotExist(err) {
