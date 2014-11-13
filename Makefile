@@ -17,10 +17,22 @@ install:
 windows:
 	GOOS=windows \
 	GOARCH=386 \
-	go build -o ./windows/decker.exe ./src
+	go build -o ./decker.exe ./src
+	
+zip:
+	GOOS=windows \
+	GOARCH=386 \
+	go build -o ./pkg/zip/windows/decker.exe ./src
+	
+	rm -f ./pkg/zip/decker-0.6.zip
+	find . -name "*.deck" -print | zip ./pkg/zip/decker-0.6.zip -@
+	cd ./pkg/zip/windows/ && find . -print | zip ../decker-0.6.zip -@
 	
 deb:
 	#Create the folders.
+	GOARCH=386 \
+	go build -o ./pkg/deb/decker ./src
+	
 	mkdir -p ./pkg/deb/DEBIAN
 	cp ./misc/version.info ./pkg/deb/DEBIAN/control
 	if file decker | grep "64-bit"; then \
@@ -38,7 +50,7 @@ deb:
 	mkdir -p ./pkg/deb/sysroot/usr/share/mime/packages/
 	
 	#Copy files.
-	cp ./decker ./pkg/deb/sysroot/usr/bin/
+	cp ./pkg/deb/decker ./pkg/deb/sysroot/usr/bin/
 	chmod +x ./pkg/deb/sysroot/usr/bin/decker
 	cp ./misc/decker.desktop ./pkg/deb/sysroot/usr/share/applications/
 	cp ./misc/mime.xml ./pkg/deb/sysroot/usr/share/mime/packages/
@@ -60,9 +72,11 @@ deb:
 	#Clean up and build.
 	rm -rf ./pkg/deb/sysroot
 	rm -rf ./pkg/deb/DEBIAN
-	cd ./pkg/deb/ && ar r decker-0.5.deb debian-binary control.tar.gz data.tar.gz
+	cd ./pkg/deb/ && ar r decker-0.6.deb debian-binary control.tar.gz data.tar.gz
 	rm -f ./pkg/deb/control.tar.gz
 	rm -f ./pkg/deb/data.tar.gz
+	rm -f ./pkg/deb/decker
 	rm -f ./pkg/deb/debian-binary
-	
+	find ./pkg/deb/ -type d -exec chmod 0777 {} \;
+	find ./pkg/deb/ -type f -exec chmod go-w {} \;
 	
