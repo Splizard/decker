@@ -13,6 +13,9 @@ install:
 	cp ./misc/mime.xml /usr/share/mime/packages/
 	update-mime-database /usr/share/mime/
 	update-desktop-database
+
+update:
+	cp ./decker /usr/bin/decker
 	
 windows:
 	GOOS=windows \
