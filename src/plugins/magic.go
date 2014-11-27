@@ -17,6 +17,8 @@ func init() {
 	var client http.Client
 
 	RegisterHeaders(Magic, []string{"Magic: The Gathering", "Magic", "MTG"})
+	
+	RegisterBack(Magic, "http://mtgimage.com/card/cardback.hq.jpg")
 
 	RegisterPlugin(Magic, func(name, info string, detecting bool) string {
 

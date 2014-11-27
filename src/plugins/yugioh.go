@@ -19,6 +19,7 @@ func init() {
 	var yugiohimageregex *regexp.Regexp = regexp.MustCompile(`"cardtable-cardimage" [A-Za-z ="0-9>]*<a href="([^"]*)"`)
 	
 	RegisterHeaders(Yugioh, []string{"Yu-Gi-Oh", "Yugioh", "yu-gi-oh"})
+	RegisterBack(Yugioh, "http://images2.wikia.nocookie.net/__cb20081116222811/ycm/images/archive/e/e5/20091231183527!Back-EN.png")
 	
 	RegisterPlugin(Yugioh, func(name, info string, detecting bool) string {
 

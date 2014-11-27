@@ -26,6 +26,7 @@ var DeckerCachePath string
 var _plugins map[string]*Plugin = make(map[string]*Plugin)
 var _headers map[string]string = make(map[string]string)
 var _cachers map[string]func(string) string = make(map[string]func(string) string)
+var _backs map[string]string = make(map[string]string)
 
 func RegisterPlugin(game string, function func(string, string, bool) string) {
 	_plugins[game] = &Plugin{Game:game,Function:function,ImageNames:make(map[string]string), Mutex:new(sync.Mutex)}
@@ -36,6 +37,20 @@ func RegisterHeaders(game string, headers []string) {
 		_headers[v] = game
 	}
 }
+
+func RegisterBack(game string, link string) {
+	_backs[game] = link
+}
+
+func GetBack(game string) string {
+	_plugins[game].Mutex.Lock()
+	defer _plugins[game].Mutex.Unlock()
+	key, yes := _backs[game]
+	if yes {
+		return key
+	}
+	return ""
+} 
 
 func RegisterCacheImageName(game string, function func(string) string) {
 	_cachers[game] = function

@@ -21,6 +21,7 @@ func init() {
 	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-,:]*)`)
 	
 	RegisterHeaders(Pokemon, []string{"Pokémon Trading Card Game", "Pokemon Trading Card Game", "Pokemon"})
+	RegisterBack(Pokemon, "http://oyster.ignimgs.com/wordpress/write.ign.com/134094/2013/10/Pokemon-Trading-Card-back.png")
 	
 	RegisterPlugin(Pokemon, func(name, info string, detecting bool) string {
 
