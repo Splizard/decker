@@ -461,7 +461,6 @@ func host() {
 				}
 				
 				if path.Dir(urlpath)[1:] == ip_address {
-					r.URL.Path = urlpath
 					file_server.ServeHTTP(w, r)
 				} else {
 					proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme:"http",Host:ip_address+":20002"})
