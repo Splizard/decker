@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 	//"html"
 )
 
@@ -74,7 +75,9 @@ func Copy(src, dst string) (int64, error) {
 var deck string
 var output string //The output file.
 
-var client http.Client
+var client http.Client = http.Client{
+    Timeout: time.Duration(1 * time.Second),
+}
 
 func init() {
 	flag.StringVar(&output, "o", "", "output file")
@@ -388,9 +391,9 @@ func decker(filename string) {
 		
 		//It is json.
 		json := Template
-		json = strings.Replace(json, "{{ URL1 }}", "http://localhost:20002/ip/"+ip_address+"/"+filepath.Base(filename)+".jpg", 1)
+		json = strings.Replace(json, "{{ URL1 }}", "http://"+ip_address+":20002/"+filepath.Base(filename)+".jpg", 1)
 		json = strings.Replace(json, "{{ #Cards }}", amount, 1)
-		json = strings.Replace(json, "{{ URL2 }}", "http://localhost:20002/"+game+".jpg", 1)
+		json = strings.Replace(json, "{{ URL2 }}", "http://"+ip_address+":20002/"+game+".jpg", 1)
 		
 		//Write file to disk.
 		handle(ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644))
@@ -450,6 +453,9 @@ func host() {
 
 	fmt.Println(http.ListenAndServe(":20002", 
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/?test" {
+				w.Write([]byte("active"))
+			}
 			urlpath := r.URL.Path
 			if len(urlpath) > 3 && urlpath[:3] == "/ip" {
 				urlpath = urlpath[3:]
@@ -472,16 +478,25 @@ func host() {
 	})))
 }
 
-func main() {
+func TabletopSetLocal(b bool) {
+ 	files, _ := ioutil.ReadDir(cache+"/images/")
+    for _, f := range files {
+    	file, err := os.Open(chest+"/"+f.Name()[:len(f.Name())-4]+".json")
+    	if err == nil {
+     	   	data, err := ioutil.ReadAll(file)
+			if err == nil {
+				if b {
+					data = []byte(strings.Replace(string(data), ip_address, "localhost", -1))
+				} else {
+					data = []byte(strings.Replace(string(data), "localhost", ip_address, -1))
+				}
+				ioutil.WriteFile(chest+"/"+f.Name()[:len(f.Name())-4]+".json", data, 0644)
+			}
+        }
+    }
+}
 
-	//Grab our IP address, if able.
-	response, err := client.Get("http://myexternalip.com/raw")
-	if err != nil {
-		data, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			ip_address = string(data)
-		}
-	}
+func main() {
 
 	//Figure out where we gonna put our cache.
 	//If for some reason we can't write to these directories, we're screwed... BUG?
@@ -519,8 +534,43 @@ func main() {
 
 	//Print a very helpful usage message that everybody understands.
 	if flag.Arg(0) == "" {
-		fmt.Println("usage: decker [OPTIONS] [FILE]")
-		goto server
+	
+		//Grab our IP address, if able.
+		ip_cache, err := os.Open(cache+"/ip")
+		if err == nil {
+			data, err := ioutil.ReadAll(ip_cache)
+			if err == nil {
+				ip_address = string(data)
+			}
+		}
+		if ip_address == "localhost" {
+			response, err := client.Get("http://myexternalip.com/raw")
+			if err == nil {
+				data, err := ioutil.ReadAll(response.Body)
+				if err == nil {
+					ip_address = strings.TrimSpace(string(data))
+				}
+			}
+			//Cache it.
+			handle(ioutil.WriteFile(cache+"/ip", []byte(ip_address), 0644))
+		}
+	
+		go host()
+		fmt.Println("We are now hosting the decks so people can download them from your computer..")
+		fmt.Print("Port forwarding:")
+		_, err = client.Get("http://"+ip_address+":20002/?test")
+		if err == nil {
+			ct.ChangeColor(ct.Green, true, ct.None, false)
+			fmt.Println(" Enabled")
+			ct.ResetColor()
+			TabletopSetLocal(false)
+		} else {
+			ct.ChangeColor(ct.Red, true, ct.None, false)
+			fmt.Println(" Disabled")
+			ct.ResetColor()
+			TabletopSetLocal(true)
+		}
+		goto end
 	}
 	
 	//Display License information.
@@ -558,12 +608,8 @@ func main() {
 
 	//Wait for everybody to finish.
 	wg.Wait()
-	
-	server:
-	
-	go host()
-	fmt.Println("We are now hosting the decks so people can download them from your computer..\n please port forward 20002.")
 
+	end:
 	//Normal people don't use a command line so we better give them a chance to read any error messages :3
 	fmt.Println("Press 'Enter' to close...")
 	reader := bufio.NewReader(os.Stdin)
