@@ -26,10 +26,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"path"
 	"runtime"
 	"strings"
 	"sync"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	//"html"
 )
 
 import "./ct"
@@ -87,7 +91,7 @@ func decker(filename string) {
 
 	//Don't crash the whole program when a bad error panics a goroutine.
 	//Simply report and let the others continue.
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			var ok bool
 			_, ok = r.(error)
@@ -101,7 +105,7 @@ func decker(filename string) {
 				return
 			}
 		}
-	}()
+	}()*/
 	//Leave the wait group.
 	if threading {
 		defer wg.Done()
@@ -359,12 +363,13 @@ func decker(filename string) {
 		err = CropDeck(output)
 		handle(err)
 		
-		fmt.Print("Creating Tabletop file...")
+		fmt.Println("Creating Tabletop file...")
 		
 		//Copy to handler directory.
+		Copy(filename, cache+"/decks/"+filepath.Base(filename)+".deck")
 		Copy(output, cache+"/images/"+filepath.Base(filename)+".jpg")
 		
-		if back := plugins.GetBack("game"); back != "" {
+		if back := plugins.GetBack(game); back != "" {
 			if _, err := os.Stat( cache + "/images/"+game+".jpg"); os.IsNotExist(err) {
 				response, err := client.Get(back)
 				handle(err)
@@ -383,12 +388,12 @@ func decker(filename string) {
 		
 		//It is json.
 		json := Template
-		json = strings.Replace(json, "{{ URL1 }}", "http://localhost:20002/"+filepath.Base(filename)+".jpg", 1)
+		json = strings.Replace(json, "{{ URL1 }}", "http://localhost:20002/ip/"+ip_address+"/"+filepath.Base(filename)+".jpg", 1)
 		json = strings.Replace(json, "{{ #Cards }}", amount, 1)
 		json = strings.Replace(json, "{{ URL2 }}", "http://localhost:20002/"+game+".jpg", 1)
 		
 		//Write file to disk.
-		handle(ioutil.WriteFile("/home/quentin/Documents/My Games/Tabletop Simulator/Saves/Chest/"+filepath.Base(filename)+".json", []byte(json), 0644))
+		handle(ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644))
 
 		//Yay we did it!
 		ct.ChangeColor(ct.Green, true, ct.None, false)
@@ -413,6 +418,11 @@ var threading bool
 //Where the cache at.
 var cache string
 
+//Where the Tabletop Chest directory is.
+var chest string 
+var ip_address string = "localhost"
+
+
 func walker(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return nil
@@ -431,21 +441,60 @@ func walker(path string, info os.FileInfo, err error) error {
 }
 
 //This will serve decks to other players in Tabletop simulator.
+//This should hopefully just "work"
+//Not tested over the internet yet...
 func host() {
-	fmt.Println(http.ListenAndServe(":20002", http.FileServer(http.Dir(cache+"/images/"))))
+
+	file_server := http.FileServer(http.Dir(cache+"/images/"))
+	
+
+	fmt.Println(http.ListenAndServe(":20002", 
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			urlpath := r.URL.Path
+			if len(urlpath) > 3 && urlpath[:3] == "/ip" {
+				urlpath = urlpath[3:]
+				
+				if urlpath[len(urlpath)-1] == '/' {
+					r.URL.Path = "/"
+				} else {
+					r.URL.Path = path.Base(r.URL.Path)
+				}
+				
+				if path.Dir(urlpath)[1:] == ip_address {
+					r.URL.Path = urlpath
+					file_server.ServeHTTP(w, r)
+				} else {
+					proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme:"http",Host:ip_address+":20002"})
+					proxy.ServeHTTP(w, r)
+				}
+			} else {
+				file_server.ServeHTTP(w, r)
+			}
+	})))
 }
 
 func main() {
 
+	//Grab our IP address, if able.
+	response, err := client.Get("http://myexternalip.com/raw")
+	if err != nil {
+		data, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			ip_address = string(data)
+		}
+	}
+
 	//Figure out where we gonna put our cache.
 	//If for some reason we can't write to these directories, we're screwed... BUG?
 	cache = os.Getenv("HOME") + "/.cache/decker"
+	chest = os.Getenv("HOME") + "/Documents/My Games/Tabletop Simulator/Saves/Chest"
 
 	if runtime.GOOS == "windows" {
 		cache = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		if cache == "" {
 			cache = os.Getenv("USERPROFILE")
 		}
+		chest = cache + "/Documents/My Games/Tabletop Simulator/Saves/Chest"
 		cache += "/AppData/Roaming/decker"
 	}
 	
@@ -462,6 +511,9 @@ func main() {
 	if _, err := os.Stat(cache + "/images/"); os.IsNotExist(err) {
 		handle(os.MkdirAll(cache + "/images/", os.ModePerm))
 	}
+	if _, err := os.Stat(cache + "/decks/"); os.IsNotExist(err) {
+		handle(os.MkdirAll(cache + "/decks/", os.ModePerm))
+	}
 
 	//Parse the commandline arguments.
 	flag.Parse()
@@ -469,7 +521,7 @@ func main() {
 	//Print a very helpful usage message that everybody understands.
 	if flag.Arg(0) == "" {
 		fmt.Println("usage: decker [OPTIONS] [FILE]")
-		return
+		goto server
 	}
 	
 	//Display License information.
@@ -508,8 +560,10 @@ func main() {
 	//Wait for everybody to finish.
 	wg.Wait()
 	
+	server:
+	
 	go host()
-	fmt.Println("We are now hosting the decks so people can download them from your computer.. please port forward 20002 to your PC.")
+	fmt.Println("We are now hosting the decks so people can download them from your computer..\n please port forward 20002.")
 
 	//Normal people don't use a command line so we better give them a chance to read any error messages :3
 	fmt.Println("Press 'Enter' to close...")
