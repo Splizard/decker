@@ -1,5 +1,7 @@
 .PHONY: windows
 
+VERSION = 0.7
+
 all:
 	go build -o ./decker ./src
 	
@@ -27,9 +29,9 @@ zip:
 	GOARCH=386 \
 	go build -o ./pkg/zip/windows/decker.exe ./src
 	
-	rm -f ./pkg/zip/decker-0.6.zip
-	find . -name "*.deck" -print | zip ./pkg/zip/decker-0.6.zip -@
-	cd ./pkg/zip/windows/ && find . -print | zip ../decker-0.6.zip -@
+	rm -f ./pkg/zip/decker-$(VERSION).zip
+	find . -name "*.deck" -print | zip ./pkg/zip/decker-$(VERSION).zip -@
+	cd ./pkg/zip/windows/ && find . -print | zip ../decker-$(VERSION).zip -@
 	
 deb:
 	#Create the folders.
@@ -43,6 +45,8 @@ deb:
 	
 	if file decker | grep "32-bit"; then \
 		sed "s/ARCHITECTURE/i386/" -i ./pkg/deb/DEBIAN/control; fi
+	
+	sed "s/VERSION/$(VERSION)/" -i ./pkg/deb/DEBIAN/control
 	
 	echo "#!/bin/sh -e\nupdate-desktop-database" >> ./pkg/deb/DEBIAN/postinst
 	chmod +x ./pkg/deb/DEBIAN/postinst
@@ -75,7 +79,7 @@ deb:
 	#Clean up and build.
 	rm -rf ./pkg/deb/sysroot
 	rm -rf ./pkg/deb/DEBIAN
-	cd ./pkg/deb/ && ar r decker-0.6.deb debian-binary control.tar.gz data.tar.gz
+	cd ./pkg/deb/ && ar r decker-$(VERSION).deb debian-binary control.tar.gz data.tar.gz
 	rm -f ./pkg/deb/control.tar.gz
 	rm -f ./pkg/deb/data.tar.gz
 	rm -f ./pkg/deb/decker
