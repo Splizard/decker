@@ -478,6 +478,7 @@ func host() {
 	})))
 }
 
+//This will format the .json saves to IP or localhost.
 func TabletopSetLocal(b bool) {
  	files, _ := ioutil.ReadDir(cache+"/images/")
     for _, f := range files {
@@ -556,7 +557,10 @@ func main() {
 		}
 	
 		go host()
-		fmt.Println("We are now hosting the decks so people can download them from your computer..")
+		
+		//Display some nice information that we are hosting files needed for Tabletop Simulator.
+		fmt.Println("We are now hosting the decks so people can download them from your computer..\n")
+		fmt.Println("IP Address:",ip_address)
 		fmt.Print("Port forwarding:")
 		_, err = client.Get("http://"+ip_address+":20002/?test")
 		if err == nil {
@@ -568,8 +572,12 @@ func main() {
 			ct.ChangeColor(ct.Red, true, ct.None, false)
 			fmt.Println(" Disabled")
 			ct.ResetColor()
+			fmt.Println("Please port forward 20002 to your computer.")
 			TabletopSetLocal(true)
 		}
+		fmt.Println("\nIf the above IP address is wrong or you wish to use Decker over LAN please edit the file:")
+		fmt.Println(cache+"/ip")
+		fmt.Println("Change the contents to the IP/Domain that your friends connect to you by.")
 		goto end
 	}
 	
@@ -610,7 +618,6 @@ func main() {
 	wg.Wait()
 
 	end:
-	//Normal people don't use a command line so we better give them a chance to read any error messages :3
 	fmt.Println("Press 'Enter' to close...")
 	reader := bufio.NewReader(os.Stdin)
 	reader.ReadString('\n')
