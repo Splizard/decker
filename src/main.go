@@ -94,7 +94,7 @@ func decker(filename string) {
 
 	//Don't crash the whole program when a bad error panics a goroutine.
 	//Simply report and let the others continue.
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
 			_, ok = r.(error)
@@ -108,7 +108,7 @@ func decker(filename string) {
 				return
 			}
 		}
-	}()*/
+	}()
 	//Leave the wait group.
 	if threading {
 		defer wg.Done()
@@ -582,7 +582,7 @@ func main() {
 	}
 	
 	//Display License information.
-	fmt.Println("Decker version 0.6, Copyright (C) 2014 Quentin Quaadgras")
+	fmt.Println("Decker version 0.7, Copyright (C) 2014 Quentin Quaadgras")
 	fmt.Println("Decker comes with ABSOLUTELY NO WARRANTY!")
 	fmt.Println("This is free software, and you are welcome to redistribute it")
 	fmt.Println("under certain conditions;")
