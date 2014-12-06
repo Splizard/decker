@@ -27,8 +27,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
+	"strconv"
 	"sync"
 	"net/http"
 	"net/http/httputil"
@@ -186,19 +188,18 @@ func decker(filename string) {
 			//Not many words start with x so we should be pretty safe, let's not worry about dealing with special cases.
 			//This may look like a complicated if statement but don't worry about understanding it.. it works.
 			//That being said, feel free to simplify if you are one of those people.
-			if len(line) > 2 && (((line[1] == 'x' || line[2] == 'x') && (line[0] > 48 && line[0] < 58)) ||
-				(line[0] > 48 && line[0] < 58) ||
-				(line[0] == 'x' && line[1] > 48 && line[1] < 58)) {
-				
+
+			//Compile a regular expression to test if the line is a card
+			r, _ := regexp.Compile("^((\\d+x)|(x?\\d+)) +[^ \n]+")
+
+			//Check if the line is a card 
+			// (nx, n or xn followed by at least one space and then anything not space)
+			if r.MatchString(line) {
 				//We need to seperate the name from the number of cards.
 				//This does that.
-				if line[1] == 'x' {
-					name = strings.TrimSpace(line[2:])
-				} else if line[0] == 'x' || line[2] == 'x' {
-					name = strings.TrimSpace(line[3:])
-				} else {
-					name = strings.TrimSpace(line[2:])
-				}
+				r, _ := regexp.Compile("^((\\d+x)|(x?\\d+))")
+
+				name = r.ReplaceAllString(line, "");
 				name = strings.Join(strings.Fields(name), " ")
 				
 				if autodetecting {
@@ -280,41 +281,12 @@ func decker(filename string) {
 					//Maximum is 99 otherwise unpredictable things will happen.
 					//Should probably note this somewhere.
 
-					//More complicated code that just works.
-					var tens int
-					var ones int
-
-					//For in the style of:
-					//
-					//	1x Card Name
-					//  1  Card Name
-					//
-					if line[0] != 'x' {
-						if line[1] > 47 && line[1] < 58 {
-							tens = int(line[0] - 48)
-							ones = int(line[1] - 48)
-						} else {
-							ones = int(line[0] - 48)
-						}
-
-						//For in the style of:
-						//
-						//	x1 Card Name
-						//
-					} else if line[0] == 'x' {
-						if line[2] > 47 && line[2] < 58 {
-							if line[1] > 47 && line[1] < 58 {
-								tens = int(line[1] - 48)
-							}
-							ones = int(line[2] - 48)
-						} else {
-							ones = int(line[1] - 48)
-						}
-					}
+					//Get the count of cards by getting the xn, nx or n part and replacing the x
+					count, _ := strconv.Atoi(strings.Replace(r.FindString(line), "x", "", -1));
 
 					//Create copies of the card in the temporary directory.
 					total += 1
-					for i := 1; i < tens*10+ones; i++ {
+					for i := 1; i < count; i++ {
 
 						if _, err := os.Stat(temp + "/" + name + " " + fmt.Sprint(i+1) + ".jpg"); os.IsNotExist(err) {
 							
