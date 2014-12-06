@@ -282,7 +282,7 @@ func decker(filename string) {
 					//Should probably note this somewhere.
 
 					//Get the count of cards by getting the xn, nx or n part and replacing the x
-					count, _ := strconv.Atoi(strings.Replace(r.FindString("^((\\d+x)|(x?\\d+))"), "x", "", -1));
+					count, _ := strconv.Atoi(strings.Replace(r.FindString(line), "x", "", -1));
 
 					//Create copies of the card in the temporary directory.
 					total += 1
