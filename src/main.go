@@ -455,7 +455,7 @@ func decker(filename string) {
 		json := Template
 		json = strings.Replace(json, "{{ URL1 }}", "http://"+ip_address+":20002/"+filepath.Base(filename)+".jpg", 1)
 		json = strings.Replace(json, "{{ #Cards }}", amount, 1)
-		json = strings.Replace(json, "{{ URL2 }}", "http://"+ip_address+":20002/"+game+".jpg", 1)
+		json = strings.Replace(json, "{{ URL2 }}", plugins.GetBack(game), 1)
 		
 		//Write file to disk.
 		handle(ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644))
