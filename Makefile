@@ -13,6 +13,7 @@ install:
 	cp ./decker /usr/bin/decker
 	cp ./misc/decker.desktop /usr/share/applications/
 	cp ./misc/mime.xml /usr/share/mime/packages/
+	cp ./misc/icon.png /usr/share/pixmaps/decker.png
 	update-mime-database /usr/share/mime/
 	update-desktop-database
 
@@ -55,12 +56,14 @@ deb:
 	mkdir -p ./pkg/deb/sysroot/usr/bin/
 	mkdir -p ./pkg/deb/sysroot/usr/share/applications/
 	mkdir -p ./pkg/deb/sysroot/usr/share/mime/packages/
+	mkdir -p ./pkg/deb/sysroot/usr/share/pixmaps/
 	
 	#Copy files.
 	cp ./pkg/deb/decker ./pkg/deb/sysroot/usr/bin/
 	chmod +x ./pkg/deb/sysroot/usr/bin/decker
 	cp ./misc/decker.desktop ./pkg/deb/sysroot/usr/share/applications/
 	cp ./misc/mime.xml ./pkg/deb/sysroot/usr/share/mime/packages/
+	cp ./misc/icon.png ./pkg/deb/sysroot/usr/share/pixmaps/decker.png
 	
 	sed "s/SIZE/$(shell stat -c %s ./pkg/deb)/" -i ./pkg/deb/DEBIAN/control
 	

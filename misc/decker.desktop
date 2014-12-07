@@ -2,6 +2,7 @@
 Name=Decker
 Exec=/usr/bin/decker %F
 MimeType=text/x-deck;image/x-deck-image
+Icon=decker.png
 Terminal=true
 Type=Application
 Name[en_NZ]=decker
