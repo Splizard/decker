@@ -4,4 +4,9 @@
      <comment>Deck</comment>
      <glob pattern="*.deck"/>
    </mime-type>
+   <mime-type type="image/x-deck-image">
+     <comment>Deck Image</comment>
+     <sub-class-of type="image/jpg"/>
+     <glob pattern="*.deck.jpg"/>
+   </mime-type>
 </mime-info>

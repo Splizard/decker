@@ -36,6 +36,10 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"time"
+	"encoding/json"
+	"encoding/base64"
+	"errors"
+	"runtime/debug"
 	//"html"
 )
 
@@ -90,6 +94,83 @@ const (
 	None    = "none"
 )
 
+type ImgurData struct {
+	Error string 		`json:"error"`
+	Link string 		`json:"link"`
+	DeleteHash string 	`json:"deletehash"`
+}
+
+type ImgurResponse struct {
+	Data ImgurData 	`json:"data"`
+	Success bool	`json:"success"`
+	Status int		`json:"status"`
+}
+
+type ImgurRequest struct {
+	Image string	`json:"image"`
+	Type string 	`json:"type"`
+	Name string		`json:"name"`
+}
+
+func upload(filename string) {
+	if file, err := os.Open(filename); err == nil {
+			
+		fmt.Println("Uploading "+filename+"...")		
+		img, err := ioutil.ReadAll(file)
+		handle(err)
+		
+		v := url.Values{}
+		v.Set("image", base64.StdEncoding.EncodeToString(img))
+		v.Set("type", "base64")
+		handle(err)
+		
+		reader := strings.NewReader(v.Encode())
+	
+		request, err := http.NewRequest("POST", "https://api.imgur.com/3/image", reader)
+		handle(err)
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.Header.Set("Authorization", "Client-ID 47122dc42ac36ad")
+		
+		response, err := http.DefaultClient.Do(request)
+		handle(err)
+		
+		body, err := ioutil.ReadAll(response.Body)
+		handle(err)
+		
+		imgur := ImgurResponse{}
+		json.Unmarshal(body, &imgur)
+		if imgur.Success {
+			link, err := url.QueryUnescape(imgur.Data.Link)
+			handle(err)
+			
+			name := filepath.Base(filename)[:len(filepath.Base(filename))-4]+".json"
+			
+			file, err := os.Open(chest+"/"+name)
+			if err == nil {
+		 	   	data, err := ioutil.ReadAll(file)
+				if err == nil {
+					data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+filepath.Base(filename), link, -1))
+					data = []byte(strings.Replace(string(data), "http://localhost:20002/"+filepath.Base(filename), link, -1))
+					ioutil.WriteFile(chest+"/"+name, data, 0644)
+				}
+		    } else {
+		    	handle(err)
+		    }
+		    
+		    //Yay we did it!
+			ct.ChangeColor(ct.Green, true, ct.None, false)
+			fmt.Print("Done ")
+			ct.ResetColor()
+			fmt.Println(filename + "!")
+		    
+		    fmt.Println(filepath.Base(filename)+" can now be found at the following location: "+link)
+		    fmt.Println(filepath.Base(filename)+" can be deleted by visiting :  https://api.imgur.com/3/image/"+imgur.Data.DeleteHash)
+		} else {
+			handle(errors.New(imgur.Data.Error))
+		}
+	}
+}
+
 //Decker function, can be called from a goroutine to generate decks in parallel.
 //(Don't know if concurrency is really going to be used much other then bulk testing but this is Go so why not!)
 func decker(filename string) {
@@ -108,12 +189,21 @@ func decker(filename string) {
 				ct.ResetColor()
 				fmt.Println(filename + "!")
 				return
+			} else {
+				fmt.Print("[ERROR] ")
+				fmt.Println(fmt.Errorf("file: "+filename+": %v", r))
 			}
 		}
 	}()
+	
 	//Leave the wait group.
 	if threading {
 		defer wg.Done()
+	}
+		
+	if filepath.Ext(filename) == ".jpg" {
+		upload(filename)
+		return
 	}
 
 	var name string      //The name of the card.

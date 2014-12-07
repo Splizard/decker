@@ -61,19 +61,25 @@ GUI Usage:
 Decker has limited use as a GUI.  
 Maybe you want to write a front-end for it on your platform?
 
+When you use Decker to generate a .deck file, Decker will ouput the image with a .jpg suffix  
+eg. file.deck >> file.deck.jpg
+
+If you have Tabletop Simulator installed, it will place the deck in your chest.  
+To use the decks you will either need to have Decker running in the background or 
+have the image hosted online which then decker can upload it for you too.  
+If you don't upload the image online then to allow people who connect to your game to use the decks you will need to port forward 20002. 
+
 *Ubuntu:*
 
 Decker will be made the default program to open .deck files.  
 Simply double click on a .deck file to generate it.  
-Run Decker from the dash before you play Tabletop Simulator and keep it running while you play.
+Run Decker from the dash before you play Tabletop Simulator and keep it running while you play.  
+You can also host the image on Imgur.com right click on the generated image and open it with decker, 
+this will upload the image so that when you run Tabletop you don't need Decker running.
 
 *Windows:*
 
 Drag decks onto decker.exe  
 Run decker.exe before you play Tabletop Simulator and keep it running while you play.
-
-When you use Decker to generate a .deck file, Decker will ouput the image with a .jpg suffix  
-eg. file.deck >> file.deck.jpg
-
-If you have Tabletop Simulator installed, it will place the deck in your chest.  
-To use the decks you will need to have Decker running in the background, if you want others who connect to your game to use the decks you will need to port forward 20002.
+You can also host the image on Imgur.com drag the generated image onto decker.exe, 
+this will upload the image so that when you run Tabletop you don't need Decker running.
