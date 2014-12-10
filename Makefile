@@ -21,9 +21,11 @@ update:
 	cp ./decker /usr/bin/decker
 	
 windows:
+	cp ./misc/rsrc.syso ./src/rsrc.syso
 	GOOS=windows \
 	GOARCH=386 \
 	go build -o ./decker.exe ./src
+	rm ./src/rsrc.syso
 	
 zip:
 	GOOS=windows \
