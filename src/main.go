@@ -39,7 +39,6 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"errors"
-	"runtime/debug"
 	//"html"
 )
 
@@ -85,8 +84,14 @@ var client http.Client = http.Client{
     Timeout: time.Duration(1 * time.Second),
 }
 
+var identify bool
+var single string
+var game string
 func init() {
 	flag.StringVar(&output, "o", "", "output file")
+	flag.BoolVar(&identify, "I", false, "identify game")
+	flag.StringVar(&single, "d", "", "download individual card")
+	flag.StringVar(&game, "g", None, "set card game")
 }
 
 //Define the current card games decker supports.
@@ -211,7 +216,7 @@ func decker(filename string) {
 	
 	var total int 		 //Number of cards in the deck.
 
-	var game string = None //The current game as defined by the game constants.
+	var game string = game //The current game as defined by the game constants.
 
 	//output file, this is to keep track of per-file outputs when running in parallel.
 	//we want to output to png.
@@ -594,6 +599,45 @@ func main() {
 
 	//Parse the commandline arguments.
 	flag.Parse()
+	
+	if identify {
+		if file, err := os.Open(flag.Arg(0)); err == nil {
+
+			//Read the first line and trim the space.
+			reader := bufio.NewReader(file)
+			line, _ := reader.ReadString('\n')
+			line = strings.TrimSpace(line)
+			
+			fmt.Println(plugins.Identify(line))
+		}
+		return
+	}
+	
+	if single != "" {
+		var imagename string
+	
+		//If the imagename is different from the card name,
+		if i := plugins.GetImageName(game, single); i != "" {
+			imagename = i
+		}
+		
+		//Let's check if the card we are looking for has already been downloaded.
+		//Plugins may handle this by themselves.
+		if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
+			fmt.Println(cache + "/cards/" + game + "/" + imagename + ".jpg")
+			return
+		} else if _, err := os.Stat(cache + "/cards/" + game + "/" + single + ".jpg"); !os.IsNotExist(err) {
+			fmt.Println(cache + "/cards/" + game + "/" + single + ".jpg")
+			return
+		} else {
+			plugins.Run(game, single, "")
+			if i := plugins.GetImageName(game, single); i != "" {
+				imagename = i
+			}
+		}
+		fmt.Println(cache + "/cards/" + game + "/" + single + ".jpg")
+		return
+	}
 
 	//Print a very helpful usage message that everybody understands.
 	if flag.Arg(0) == "" {
