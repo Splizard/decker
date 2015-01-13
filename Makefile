@@ -1,6 +1,6 @@
 .PHONY: windows
 
-VERSION = 0.7
+VERSION = 0.8
 
 all:
 	go build -o ./decker ./src
