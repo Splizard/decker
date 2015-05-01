@@ -32,7 +32,7 @@ func init() {
 			return Magic
 		}
 		
-		search = "http://magiccards.info/query?q="+url.QueryEscape(name)+"&v=card&s=cname"
+		search = "http://magiccards.info/query?q="+url.QueryEscape(name)+"&v=card&s=edition"
 		
 		response, err := client.Get(search)
 		Handle(err)
