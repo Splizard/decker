@@ -578,6 +578,8 @@ func main() {
 		}
 		chest = cache + "/Documents/My Games/Tabletop Simulator/Saves/Chest"
 		cache += "/AppData/Roaming/decker"
+	} else {
+		chest = os.Getenv("HOME") + "/My Games/Tabletop Simulator/Saves/Chest"
 	}
 	
 	plugins.DeckerCachePath = cache
