@@ -697,7 +697,7 @@ func main() {
 	}
 	
 	//Display License information.
-	fmt.Println("Decker version 0.8, Copyright (C) 2014 Quentin Quaadgras")
+	fmt.Println("Decker version 0.9, Copyright (C) 2014 Quentin Quaadgras")
 	fmt.Println("Decker comes with ABSOLUTELY NO WARRANTY!")
 	fmt.Println("This is free software, and you are welcome to redistribute it")
 	fmt.Println("under certain conditions;")
