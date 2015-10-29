@@ -463,7 +463,14 @@ func decker(filename string) {
 		json = strings.Replace(json, "{{ URL2 }}", plugins.GetBack(game), 1)
 		
 		//Write file to disk.
-		handle(ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644))
+		err = ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644)
+		if err != nil {
+			ct.ChangeColor(ct.Red, true, ct.None, false)
+			fmt.Print("Tabletop Chest folder not found :S\n")
+			ct.ResetColor()
+			fmt.Println("Please manually put the json file in the right place --thanks :)")
+			ioutil.WriteFile(filepath.Dir(filename)+"/"+filepath.Base(filename)+".json", []byte(json), 0644)
+		}
 
 		//Yay we did it!
 		ct.ChangeColor(ct.Green, true, ct.None, false)
