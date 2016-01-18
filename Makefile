@@ -1,6 +1,6 @@
 .PHONY: windows
 
-VERSION = 0.8
+VERSION = 0.9.1
 
 all:
 	go build -o ./decker ./src
@@ -91,4 +91,8 @@ deb:
 	rm -f ./pkg/deb/debian-binary
 	find ./pkg/deb/ -type d -exec chmod 0777 {} \;
 	find ./pkg/deb/ -type f -exec chmod go-w {} \;
+	
+release:
+	make zip
+	make deb
 	
