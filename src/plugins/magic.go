@@ -1,5 +1,6 @@
 //Magic.
 //This plugin will download magic cards from http://magiccards.info
+//As a fallback it will use the gatherer website! (http://gatherer.wizards.com/)
 package plugins
 
 import "fmt"
@@ -21,7 +22,7 @@ func init() {
 
 	RegisterHeaders(Magic, []string{"Magic: The Gathering", "Magic", "MTG"})
 	
-	RegisterBack(Magic, "http://mtgimage.com/card/cardback.hq.jpg")
+	RegisterBack(Magic, "http://gatherer.wizards.com/Handlers/Image.ashx?name=&type=card")
 
 	RegisterPlugin(Magic, func(name, info string, detecting bool) string {
 
@@ -45,13 +46,21 @@ func init() {
 		body, err := ioutil.ReadAll(response.Body)
 		Handle(err)
 		
+		var image string
+		
 		//Magic Image Regex!
 		submatches := magicimageregex.FindStringSubmatch(string(body))
 		if len(submatches) < 2 {
 			//Indeed.. a bug on magiccards.info :3
-			Handle(errors.New("No image found for card " + name + ", this could be a bug !"))
+			//As they don't have the LATEST SETS SOMETIMES D:
+			//Handle(errors.New("No image found for card " + name + ", this could be a bug !"))
+			//Gonna fix this with using gather as a fallback.
+			image = "http://gatherer.wizards.com/Handlers/Image.ashx?name="+url.QueryEscape(name)+"&type=card"
+			fmt.Println("Some of the cards were not found on mtgimage.com, I have decided to pull those cards from gatherer.wizards.com which is risky because I don't know if they will be found...")
+			fmt.Println("Check that all your cards are in the final image!")
+		} else {
+			image = "http://magiccards.info/scans/"+string(submatches[1])
 		}
-		image := "http://magiccards.info/scans/"+string(submatches[1])
 
 		//Now we can check if we already have the image cached, otherwise download it.
 		if _, err := os.Stat(DeckerCachePath  + "/cards/magic/" + name + ".jpg"); !os.IsNotExist(err) {
