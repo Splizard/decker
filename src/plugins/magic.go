@@ -22,7 +22,7 @@ func init() {
 
 	RegisterHeaders(Magic, []string{"Magic: The Gathering", "Magic", "MTG"})
 	
-	RegisterBack(Magic, "http://gatherer.wizards.com/Handlers/Image.ashx?name=&type=card")
+	RegisterBack(Magic, "https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg")
 
 	RegisterPlugin(Magic, func(name, info string, detecting bool) string {
 
