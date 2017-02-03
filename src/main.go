@@ -150,6 +150,11 @@ func upload(filename string) {
 			
 			name := filepath.Base(filename)[:len(filepath.Base(filename))-4]+".json"
 			
+			//Handle large decks. TODO make this more robust.
+			if name[len(name)-12:len(name)-6] == ".deck-" {
+				name = name[:len(name)-7]+" (part "+string(name[len(name)-6]+1)+").deck.json"
+			}
+			
 			file, err := os.Open(chest+"/"+name)
 			if err == nil {
 		 	   	data, err := ioutil.ReadAll(file)
@@ -381,11 +386,20 @@ func decker(filename string) {
 
 					//Create copies of the card in the temporary directory.
 					total += 1
+					
+					if total == 69 {
+						count++
+					}
+					
 					for i := 1; i < count; i++ {
 
 						if _, err := os.Stat(temp + "/" + name + " " + fmt.Sprint(i+1) + ".jpg"); os.IsNotExist(err) {
 							
 							total += 1
+							
+							if total == 69 {
+								count++
+							}
 
 							//Symbolic links don't like windows very much.. So we'll just have to copy the file multiple times.
 							if runtime.GOOS == "windows" {
@@ -429,14 +443,53 @@ func decker(filename string) {
 			handle(err)
 		}
 		
-		//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
-		err = CropDeck(output)
-		handle(err)
-		
 		fmt.Println("Creating Tabletop file...")
 		
 		//Copy to handler directory.
 		Copy(filename, cache+"/decks/"+filepath.Base(filename)+".deck")
+		
+		//Ok so if there is more then 69 cards we have an issue...
+		if _, err := os.Stat(output); os.IsNotExist(err) {
+		 	//Gonna have to process the files individually!
+		 	//eg. for each file, process like a boss.
+		 	var count int
+		 	var subtotal int = total
+		 	for {
+		 		//Ok there should be a multitude of files which are something like NAMEOFDECK.deck-0.jpg, NAMEOFDECK.deck-1.jpg, etc...
+				if _, err := os.Stat(filename+"-"+fmt.Sprint(count)+".jpg"); os.IsNotExist(err) {
+					break
+				}
+				fmt.Println("Processing: ", filename+"-"+fmt.Sprint(count)+".jpg")
+				
+				
+				
+				processlikeaBOSS(filename+"-"+fmt.Sprint(count)+".jpg", filepath.Base(filename)+" (part "+fmt.Sprint(count+1)+").deck", game, subtotal)
+				subtotal -= 70
+				
+				count++
+		 	}
+		} else {
+		
+			processlikeaBOSS(output, filename, game, total)
+		
+		}
+
+	} else {
+		//The file you provided doesn't seem to exist or something.
+		fmt.Println(err.Error())
+		//Always helps to insult the user of their spelling,
+		//It makes them feel better.
+		fmt.Println("Check spelling?")
+		return
+	}
+}
+
+//This puts an image into TabletopSimiulator.
+func processlikeaBOSS(output, filename, game string, total int) {
+	//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
+		err := CropDeck(output)
+		handle(err)
+		
 		Copy(output, cache+"/images/"+filepath.Base(filename)+".jpg")
 		
 		if back := plugins.GetBack(game); back != "" {
@@ -450,15 +503,21 @@ func decker(filename string) {
 		}
 		
 		//Generate the Tabletop Simulator save file.
+		if total > 69 {
+			total = 69
+		}
+		
 		var amount string = "100"
 		fmt.Println("generated ",total," cards")
 		for i:=101; i < 100+total; i++ {
 			amount += ",\n        "+fmt.Sprint(i)
 		} 
 		
+		websafepath := strings.Replace(filepath.Base(filename)+".jpg", " ", "%20", -1)
+		
 		//It is json.
 		json := Template
-		json = strings.Replace(json, "{{ URL1 }}", "http://"+ip_address+":20002/"+filepath.Base(filename)+".jpg", 1)
+		json = strings.Replace(json, "{{ URL1 }}", "http://"+ip_address+":20002/"+websafepath, 1)
 		json = strings.Replace(json, "{{ #Cards }}", amount, 1)
 		json = strings.Replace(json, "{{ URL2 }}", plugins.GetBack(game), 1)
 		
@@ -477,15 +536,6 @@ func decker(filename string) {
 		fmt.Print("Done ")
 		ct.ResetColor()
 		fmt.Println(filename + "!")
-
-	} else {
-		//The file you provided doesn't seem to exist or something.
-		fmt.Println(err.Error())
-		//Always helps to insult the user of their spelling,
-		//It makes them feel better.
-		fmt.Println("Check spelling?")
-		return
-	}
 }
 
 //Concurrency things.
