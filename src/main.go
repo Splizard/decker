@@ -626,17 +626,17 @@ func main() {
 	//Figure out where we gonna put our cache.
 	//If for some reason we can't write to these directories, we're screwed... BUG?
 	cache = os.Getenv("HOME") + "/.cache/decker"
-	chest = os.Getenv("HOME") + "/Documents/My Games/Tabletop Simulator/Saves/Chest"
+	chest = os.Getenv("HOME") + "/Documents/My Games/Tabletop Simulator/Saves/Saved Objects"
 
 	if runtime.GOOS == "windows" {
 		cache = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		if cache == "" {
 			cache = os.Getenv("USERPROFILE")
 		}
-		chest = cache + "/Documents/My Games/Tabletop Simulator/Saves/Chest"
+		chest = cache + "/Documents/My Games/Tabletop Simulator/Saves/Saved Objects"
 		cache += "/AppData/Roaming/decker"
 	} else {
-		chest = os.Getenv("HOME") + "/My Games/Tabletop Simulator/Saves/Chest"
+		chest = os.Getenv("HOME") + "/My Games/Tabletop Simulator/Saves/Saved Objects"
 	}
 	
 	plugins.DeckerCachePath = cache
