@@ -15,7 +15,7 @@ func init() {
 	var client http.Client
 	
 	//Regexes needed for parsing results from http://yugioh.wikia.com
-	var yugiohregex *regexp.Regexp = regexp.MustCompile(`<a href="([A-Za-z =0-9:/.,_-]*)" class="result-link"`)
+	var yugiohregex *regexp.Regexp = regexp.MustCompile(`<a href="(.[0-9a-zA-z _\/\.\-(),:]*)" class="result-link"`)
 	var yugiohimageregex *regexp.Regexp = regexp.MustCompile(`"cardtable-cardimage" [A-Za-z ="0-9>]*<a href="([^"]*)"`)
 	
 	RegisterHeaders(Yugioh, []string{"Yu-Gi-Oh", "Yugioh", "yu-gi-oh"})

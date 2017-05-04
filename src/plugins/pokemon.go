@@ -17,7 +17,7 @@ func init() {
 	var client http.Client
 	
 	//Regexes needed for parsing results from pkmncards.com
-	var pokemonregex *regexp.Regexp = regexp.MustCompile(`http://pkmncards\.com/card/(.[0-9a-zA-z _\.\-,:]*)/`)
+	var pokemonregex *regexp.Regexp = regexp.MustCompile(`https://pkmncards\.com/card/(.[0-9a-zA-z _\.\-,:]*)/`)
 	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-,:]*)`)
 	
 	RegisterHeaders(Pokemon, []string{"Pokémon Trading Card Game", "Pokemon Trading Card Game", "Pokemon"})
@@ -63,9 +63,9 @@ func init() {
 		var imagename string = name
 		
 		if info != "" {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "%22&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "&display=scan&sort=date"
 		} else {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "%22&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "&display=scan&sort=date"
 		}
 
 		//This returns the search results for the card.
