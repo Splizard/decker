@@ -636,7 +636,9 @@ func main() {
 		chest = cache + "/Documents/My Games/Tabletop Simulator/Saves/Saved Objects"
 		cache += "/AppData/Roaming/decker"
 	} else {
-		chest = os.Getenv("HOME") + "/My Games/Tabletop Simulator/Saves/Saved Objects"
+		//The game suddenly decided to have a sensible linux path.
+		//I apologise here to my fellow linux users who are wondering why Decker was broken for a while.
+		chest = os.Getenv("HOME") + "/.local/share/Tabletop Simulator/Saves/Saved Objects"
 	}
 	
 	plugins.DeckerCachePath = cache
