@@ -40,6 +40,8 @@ import (
 	"encoding/base64"
 	"errors"
 	//"html"
+	
+	"sort" //Because we are organised.
 )
 
 import "./ct"
@@ -245,6 +247,9 @@ func decker(filename string) {
 	var autodetecting bool
 	var possibilities []string
 	var statistics = make(map[string]int)
+	
+	var CardNames = make([]string, 0, 500)
+	var CardAmounts = make(map[string]int)
 
 	//Open the deck file. TODO maybe support http:// decks.
 	if file, err := os.Open(filename); err == nil {
@@ -302,6 +307,9 @@ func decker(filename string) {
 				name = r.ReplaceAllString(line, "");
 				name = strings.Join(strings.Fields(name), " ")
 				
+				//Add this card to our collection of cardnames, the Tabletop File can make good use of this.
+				CardNames = append(CardNames, name)
+				
 				if autodetecting {
 					
 					possibilities = plugins.Autodetect(name, info)
@@ -341,6 +349,7 @@ func decker(filename string) {
 				
 					var cache = cache
 					var imagename = name
+					var oldname = name
 
 					//If the imagename is different from the card name,
 					if i := plugins.GetImageName(game, name); i != "" {
@@ -383,6 +392,9 @@ func decker(filename string) {
 
 					//Get the count of cards by getting the xn, nx or n part and replacing the x
 					count, _ := strconv.Atoi(strings.Replace(r.FindString(line), "x", "", -1));
+
+					//Increment card amounts.
+					CardAmounts[oldname] = count + CardAmounts[oldname]
 
 					//Create copies of the card in the temporary directory.
 					total += 1
@@ -445,6 +457,9 @@ func decker(filename string) {
 		
 		fmt.Println("Creating Tabletop file...")
 		
+		//Sort our cardnames into alphabeta order.
+		sort.Sort(sort.StringSlice(CardNames))
+		
 		//Copy to handler directory.
 		Copy(filename, cache+"/decks/"+filepath.Base(filename)+".deck")
 		
@@ -463,14 +478,14 @@ func decker(filename string) {
 				
 				
 				
-				processlikeaBOSS(filename+"-"+fmt.Sprint(count)+".jpg", filepath.Base(filename)+" (part "+fmt.Sprint(count+1)+").deck", game, subtotal)
+				processlikeaBOSS(CardAmounts, CardNames, filename+"-"+fmt.Sprint(count)+".jpg", filepath.Base(filename)+" (part "+fmt.Sprint(count+1)+").deck", game, subtotal)
 				subtotal -= 70
 				
 				count++
 		 	}
 		} else {
 		
-			processlikeaBOSS(output, filename, game, total)
+			processlikeaBOSS(CardAmounts, CardNames, output, filename, game, total)
 		
 		}
 
@@ -485,7 +500,8 @@ func decker(filename string) {
 }
 
 //This puts an image into TabletopSimiulator.
-func processlikeaBOSS(output, filename, game string, total int) {
+//It should take a struct but that is not worthy of my time.
+func processlikeaBOSS(cardamounts map[string]int, cardnames []string, output, filename, game string, total int) {
 	//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
 		err := CropDeck(output)
 		handle(err)
@@ -515,11 +531,31 @@ func processlikeaBOSS(output, filename, game string, total int) {
 		
 		websafepath := strings.Replace(filepath.Base(filename)+".jpg", " ", "%20", -1)
 		
+		//The json stuff is slow, I know, I don't care, people need fast computers for Tabeltop Simulator anyway..
+		//(Please contact me if you are trying to make a server tool and I *may* consider optimising this)
+		
+		//Apparently we want to name each individual card because them people can search for cards ingame.
+		//Ok then. Lez do dis.
+		var nicknames string
+		var counter int
+		for _, name := range cardnames {
+			for j:=0; j <cardamounts[name]; j++ {
+				//Because Python is fun.
+				nicknames += strings.Replace(
+					strings.Replace(
+						CardWithNicknameTemplate, "{{ #CardName }}", name, 1), 
+													"{{ #CardID }}", fmt.Sprint(100+counter), 1)
+				counter++
+			}
+		}
+		
+		
 		//It is json.
 		json := Template
 		json = strings.Replace(json, "{{ URL1 }}", "http://"+ip_address+":20002/"+websafepath, 1)
 		json = strings.Replace(json, "{{ #Cards }}", amount, 1)
 		json = strings.Replace(json, "{{ URL2 }}", plugins.GetBack(game), 1)
+		json = strings.Replace(json, "{{ #CardsWithNicknames }}", nicknames, 1)
 		
 		//Write file to disk.
 		err = ioutil.WriteFile(chest+"/"+filepath.Base(filename)+".json", []byte(json), 0644)

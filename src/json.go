@@ -37,14 +37,28 @@ const Template = `
       "SidewaysCard": false,
       "DeckIDs": [
         {{ #Cards }}
-        
       ],
       "CustomDeck": {
         "1": {
           "FaceURL": "{{ URL1 }}",
           "BackURL": "{{ URL2 }}"
         }
-      }
+      },
+      "ContainedObjects": [
+      	{{ #CardsWithNicknames }}
+      ]
     }
   ]
 }`
+
+//AlphaKilo requested this.
+//Allow cards to have names ingame.
+const CardWithNicknameTemplate = `
+	{
+	  "Name": "Card",
+	  "Transform": {"posY": 4.0, "rotY": 180.000015, "rotZ": 180.000015, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0},
+	  "Nickname": "{{ #CardName }}",
+	  "Description": "",
+	  "CardID": {{ #CardID }},
+	},
+`
