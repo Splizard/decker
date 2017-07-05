@@ -27,10 +27,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"path"
-	"regexp"
 	"runtime"
 	"strings"
-	"strconv"
 	"sync"
 	"net/http"
 	"net/http/httputil"
@@ -40,12 +38,11 @@ import (
 	"encoding/base64"
 	"errors"
 	//"html"
-	
-	"sort" //Because we are organised.
 )
 
 import "./ct"
 import "./plugins"
+import "./deck"
 
 //Error handler, all bad errors will be sent here.
 func handle(err error) {
@@ -79,7 +76,6 @@ func Copy(src, dst string) (int64, error) {
 	return io.Copy(dst_file, src_file)
 }
 
-var deck string
 var output string //The output file.
 
 var client http.Client = http.Client{
@@ -218,7 +214,6 @@ func decker(filename string) {
 		return
 	}
 
-	var name string      //The name of the card.
 	var info string      //Extra details to identify the card, mainly for Pokemon.
 	
 	var total int 		 //Number of cards in the deck.
@@ -243,188 +238,150 @@ func decker(filename string) {
 			os.RemoveAll(temp)
 		}
 	}()
-	
-	var autodetecting bool
+
 	var possibilities []string
 	var statistics = make(map[string]int)
 	
-	var CardNames = make([]string, 0, 500)
-	var CardAmounts = make(map[string]int)
+	var file io.Reader
 
 	//Open the deck file. TODO maybe support http:// decks.
-	if file, err := os.Open(filename); err == nil {
+	if file, err = os.Open(filename); err != nil {
+		//The file you provided doesn't seem to exist or something.
+		fmt.Println(err.Error())
+		//Always helps to insult the user of their spelling,
+		//It makes them feel better.
+		fmt.Println("Check spelling?")
+		return
+	}
+	
+	Deck, err := deck.Load(file)
+	handle(err)
 
-		//Read the first line and trim the space.
-		reader := bufio.NewReader(file)
-		line, _ := reader.ReadString('\n')
-		line = strings.TrimSpace(line)
-
-		//If possible we want to indentify the name of the Card game.
-		//These names should be at the top of a deck file.
-		game = plugins.Identify(line)
+	//If possible we want to indentify the name of the Card game.
+	//These names should be at the top of a deck file.
+	game = plugins.Identify(Deck.Game)
 		
-		//If there is no header, make a big deal about it.
-		if game == None {
-			ct.ChangeColor(ct.Red, true, ct.None, false)
-			fmt.Print("Warning! ")
-			ct.ResetColor()
-			fmt.Println("this deck file does not have a identifyable header...\nFalling back to auto-detection.")
+	//If there is no header, make a big deal about it.
+	if game == None {
+		ct.ChangeColor(ct.Red, true, ct.None, false)
+		fmt.Print("Warning! ")
+		ct.ResetColor()
+		fmt.Println("I cannot recognise the cardgame...\nFalling back to auto-detection.")
 
-			//Complain to the user, they have committed a great sin.
-			fmt.Println("It is STRONGLY recommended that you add a identifier at the top of the file.")
-			fmt.Println("This makes it easier for people to recognise the card game...\n")
+		//Complain to the user, they have committed a great sin.
+		fmt.Println("It is STRONGLY recommended that you add a game identifier at the top of the file.")
+		fmt.Println("This makes it easier for people to recognise the card game!\n")
+		
+		//TODO test autodetection on some weird deck files.
+		for _, name := range Deck.Cards {
 			
-			autodetecting = true
-		}
-
-		//Loop through the file.
-		for {
-			line, err := reader.ReadString('\n') //Parse line-by-line.
-			if err == io.EOF {
-				break
-			}
-			handle(err)
-
-			//Trim the spacing. TODO trim spacing in between words that are used for nice reading.
-			line = strings.TrimSpace(line)
-
-			//Cards are identified by having an 'x' at the beginning of the line or a number.
-			//Anyother character is a comment.
-			//Not many words start with x so we should be pretty safe, let's not worry about dealing with special cases.
-			//This may look like a complicated if statement but don't worry about understanding it.. it works.
-			//That being said, feel free to simplify if you are one of those people.
-
-			//Compile a regular expression to test if the line is a card
-			r, _ := regexp.Compile("^((\\d+x)|(x?\\d+)) +[^ \n]+")
-
-			//Check if the line is a card 
-			// (nx, n or xn followed by at least one space and then anything not space)
-			if r.MatchString(line) {
-				//We need to seperate the name from the number of cards.
-				//This does that.
-				r, _ := regexp.Compile("^((\\d+x)|(x?\\d+))")
-
-				name = r.ReplaceAllString(line, "");
-				name = strings.Join(strings.Fields(name), " ")
-				
-				//Add this card to our collection of cardnames, the Tabletop File can make good use of this.
-				CardNames = append(CardNames, name)
-				
-				if autodetecting {
-					
-					possibilities = plugins.Autodetect(name, info)
-					for _, v := range possibilities {
-						if _, yes := statistics[v]; yes {
-							statistics[v] += 1
-						} else {
-							statistics[v] = 1
-						}
-					}
-					max := 0
-					id := ""
-					for i, v := range statistics {
-						if v > max {
-							max = v
-							id = i
-						}
-					}
-					for i, v := range statistics {
-						if id != i && max == v {
-							goto pass 
-						}
-					}
-					game = id
-					autodetecting = false
-					file.Close()
-					file, err = os.Open(filename)
-					handle(err)
-					reader = bufio.NewReader(file)
-					ct.ChangeColor(ct.Green, true, ct.None, false)
-					fmt.Print("It's OK ")
-					ct.ResetColor()
-					fmt.Println("Game appears to be '"+game+"'")
-					
-					pass:
+			possibilities = plugins.Autodetect(name, info)
+			for _, v := range possibilities {
+				println("possibilities", v)
+				if _, yes := statistics[v]; yes {
+					statistics[v] += 1
 				} else {
-				
-					var cache = cache
-					var imagename = name
-					var oldname = name
-
-					//If the imagename is different from the card name,
-					if i := plugins.GetImageName(game, name); i != "" {
-						imagename = i
-					}
-					
-					//Let's check if the card we are looking for has already been downloaded.
-					//Plugins may handle this by themselves.
-					if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
-						if !usingCache {
-							fmt.Println("using cached files for "+filename)
-							usingCache = true
-						}
-					} else if _, err := os.Stat(filepath.Dir(filename) + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
-						if !usingCache {
-							fmt.Println("using cached files for "+filename)
-							usingCache = true
-						}
-						cache = filepath.Dir(filename)
-						
-					} else {
-						plugins.Run(game, name, info)
-						if i := plugins.GetImageName(game, name); i != "" {
-							imagename = i
-						}
-					}
-					
-					//If the imagename is different from the card name, we replace it now so everything works.
-					name = imagename
-
-					//Copy the card from cache to the temp directory.
-					if _, err := os.Stat(temp + "/" + name + ".jpg"); os.IsNotExist(err) {
-						_, err := Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+".jpg")
-						handle(err)
-					}
-
-					//Figure out how many cards there are in the deck.
-					//Maximum is 99 otherwise unpredictable things will happen.
-					//Should probably note this somewhere.
-
-					//Get the count of cards by getting the xn, nx or n part and replacing the x
-					count, _ := strconv.Atoi(strings.Replace(r.FindString(line), "x", "", -1));
-
-					//Increment card amounts.
-					CardAmounts[oldname] = count + CardAmounts[oldname]
-
-					//Create copies of the card in the temporary directory.
-					total += 1
-					
-					if total == 69 {
-						count++
-					}
-					
-					for i := 1; i < count; i++ {
-
-						if _, err := os.Stat(temp + "/" + name + " " + fmt.Sprint(i+1) + ".jpg"); os.IsNotExist(err) {
-							
-							total += 1
-							
-							if total == 69 {
-								count++
-							}
-
-							//Symbolic links don't like windows very much.. So we'll just have to copy the file multiple times.
-							if runtime.GOOS == "windows" {
-								Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
-							} else {
-								os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
-							}
-
-						}
-					}
+					statistics[v] = 1
 				}
 			}
+			max := 0
+			id := ""
+			for i, v := range statistics {
+				if v > max {
+					max = v
+					id = i
+				}
+			}
+			for i, v := range statistics {
+				if id != i && max == v {
+					continue 
+				}
+			}
+			game = id
+			
+			ct.ChangeColor(ct.Green, true, ct.None, false)
+			fmt.Print("It's OK ")
+			ct.ResetColor()
+			fmt.Println("Game appears to be '"+game+"'")
+			break
 		}
+		
+	}
+
+	//Loop through the file.
+	for _, name := range Deck.Cards {
+		
+		var cache = cache
+		var imagename = name
+		
+		var count = Deck.Copies[name]
+
+		//If the imagename is different from the card name,
+		if i := plugins.GetImageName(game, name); i != "" {
+			imagename = i
+		}
+		
+		//Let's check if the card we are looking for has already been downloaded.
+		//Plugins may handle this by themselves.
+		if _, err := os.Stat(cache + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
+			if !usingCache {
+				fmt.Println("using cached files for "+filename)
+				usingCache = true
+			}
+		} else if _, err := os.Stat(filepath.Dir(filename) + "/cards/" + game + "/" + imagename + ".jpg"); !os.IsNotExist(err) {
+			if !usingCache {
+				fmt.Println("using cached files for "+filename)
+				usingCache = true
+			}
+			cache = filepath.Dir(filename)
+			
+		} else {
+			plugins.Run(game, name, info)
+			if i := plugins.GetImageName(game, name); i != "" {
+				imagename = i
+			}
+		}
+		
+		//If the imagename is different from the card name, we replace it now so everything works.
+		name = imagename
+
+		//Copy the card from cache to the temp directory.
+		if _, err := os.Stat(temp + "/" + name + ".jpg"); os.IsNotExist(err) {
+			_, err := Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+".jpg")
+			handle(err)
+		}
+
+		//Figure out how many cards there are in the deck.
+		//Maximum is 99 otherwise unpredictable things will happen.
+		//Should probably note this somewhere.
+
+		//Create copies of the card in the temporary directory.
+		total += 1
+		
+		if total == 69 {
+			count++
+		}
+		
+		for i := 1; i < count; i++ {
+
+			if _, err := os.Stat(temp + "/" + name + " " + fmt.Sprint(i+1) + ".jpg"); os.IsNotExist(err) {
+				
+				total += 1
+				
+				if total == 69 {
+					count++
+				}
+
+				//Symbolic links don't like windows very much.. So we'll just have to copy the file multiple times.
+				if runtime.GOOS == "windows" {
+					Copy(cache+"/cards/"+game+"/"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+				} else {
+					os.Symlink("./"+name+".jpg", temp+"/"+name+" "+fmt.Sprint(i+1)+".jpg")
+				}
+
+			}
+		}
+	}
 
 		//Now we actually generate the image.
 		fmt.Println("Generating image for " + filename + " to " + output + "...")
@@ -457,9 +414,6 @@ func decker(filename string) {
 		
 		fmt.Println("Creating Tabletop file...")
 		
-		//Sort our cardnames into alphabeta order.
-		sort.Sort(sort.StringSlice(CardNames))
-		
 		//Copy to handler directory.
 		Copy(filename, cache+"/decks/"+filepath.Base(filename)+".deck")
 		
@@ -478,30 +432,21 @@ func decker(filename string) {
 				
 				
 				
-				processlikeaBOSS(CardAmounts, CardNames, filename+"-"+fmt.Sprint(count)+".jpg", filepath.Base(filename)+" (part "+fmt.Sprint(count+1)+").deck", game, subtotal)
+				processlikeaBOSS(Deck, filename+"-"+fmt.Sprint(count)+".jpg", filepath.Base(filename)+" (part "+fmt.Sprint(count+1)+").deck", game, subtotal)
 				subtotal -= 70
 				
 				count++
 		 	}
 		} else {
 		
-			processlikeaBOSS(CardAmounts, CardNames, output, filename, game, total)
+			processlikeaBOSS(Deck, output, filename, game, total)
 		
 		}
-
-	} else {
-		//The file you provided doesn't seem to exist or something.
-		fmt.Println(err.Error())
-		//Always helps to insult the user of their spelling,
-		//It makes them feel better.
-		fmt.Println("Check spelling?")
-		return
-	}
 }
 
 //This puts an image into TabletopSimiulator.
 //It should take a struct but that is not worthy of my time.
-func processlikeaBOSS(cardamounts map[string]int, cardnames []string, output, filename, game string, total int) {
+func processlikeaBOSS(Deck deck.Deck, output, filename, game string, total int) {
 	//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
 		err := CropDeck(output)
 		handle(err)
@@ -538,8 +483,8 @@ func processlikeaBOSS(cardamounts map[string]int, cardnames []string, output, fi
 		//Ok then. Lez do dis.
 		var nicknames string
 		var counter int
-		for _, name := range cardnames {
-			for j:=0; j <cardamounts[name]; j++ {
+		for _, name := range Deck.Cards {
+			for j:=0; j < Deck.Copies[name]; j++ {
 				//Because Python is fun.
 				nicknames += strings.Replace(
 					strings.Replace(
@@ -565,6 +510,7 @@ func processlikeaBOSS(cardamounts map[string]int, cardnames []string, output, fi
 			ct.ResetColor()
 			fmt.Println("Please manually put the json file in the right place --thanks :)")
 			ioutil.WriteFile(filepath.Dir(filename)+"/"+filepath.Base(filename)+".json", []byte(json), 0644)
+			panic("Tabletop Chest folder not found :S\n")
 		}
 
 		//Yay we did it!
