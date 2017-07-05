@@ -21,7 +21,7 @@ func init() {
 	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-,:]*)`)
 	
 	RegisterHeaders(Pokemon, []string{"Pokémon Trading Card Game", "Pokemon Trading Card Game", "Pokemon"})
-	RegisterBack(Pokemon, "http://oyster.ignimgs.com/wordpress/write.ign.com/134094/2013/10/Pokemon-Trading-Card-back.png")
+	RegisterBack(Pokemon, "http://vignette1.wikia.nocookie.net/cardgame/images/a/ac/Pokemon-card-back.jpg/revision/latest?cb=20131228023927")
 	
 	RegisterPlugin(Pokemon, func(name, info string, detecting bool) string {
 
@@ -61,11 +61,18 @@ func init() {
 		}
 		
 		var imagename string = name
-		
+		 
+		// Make a Regex to say we only want
+		reg, err := regexp.Compile("[^a-zA-Z0-9 ]+")
+		if err != nil {
+			panic(err)
+		}
+		query := reg.ReplaceAllString(name, "")
+    
 		if info != "" {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "+text%3A%22" + url.QueryEscape(info) + "&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(query) + "+text%3A%22" + url.QueryEscape(info) + "&display=scan&sort=date"
 		} else {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(name) + "&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(query) + "&display=scan&sort=date"
 		}
 
 		//This returns the search results for the card.
