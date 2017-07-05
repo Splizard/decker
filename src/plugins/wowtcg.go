@@ -29,7 +29,14 @@ func init() {
 	
 	RegisterBack(Wow, "http://img1.wikia.nocookie.net/__cb20061106231523/wowwiki/images/9/9e/WoWTCG-Full.jpg")
 
-	RegisterPlugin(Wow, func(name, info string, detecting bool) string {
+	RegisterPlugin(Wow, func(name, info string, detecting bool) (game string) {
+		//Don't crash the whole program when a bad error panics a goroutine.
+		//Simply report and let the others continue.
+		defer func() {
+			if r := recover(); r != nil {
+				game = None
+			}
+		}()
 
 		var imagename string = name
 
