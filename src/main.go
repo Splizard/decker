@@ -389,7 +389,7 @@ func decker(filename string) {
 		//We use imagemagick's montage to generate the image,
 		//somebody could code it in go using it's image library but I can't be bothered as imagemagick already does a perfect job.
 		//Why rewrite something that already exists when you can just glue a bunch of different programs together?
-		command := "montage"
+		command := "magick"
 
 		//Windows doesn't like it when you drag a deck file onto decker from a different folder.
 		//Then it makes the different folder the current working directory and complains
@@ -398,15 +398,15 @@ func decker(filename string) {
 			command, err = filepath.Abs(os.Args[0])
 			command = filepath.Dir(command)
 			if err != nil {
-				command = "montage"
+				command = "magick"
 			} else {
-				command += "/montage"
+				command = "magick"
 			}
 		}
 
 		//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
-		montage := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
-		text, err := montage.CombinedOutput()
+		magick := exec.Command(command, "montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
+		text, err := magick.CombinedOutput()
 		if err != nil {
 			fmt.Print(string(text))
 			handle(err)
