@@ -20,7 +20,7 @@ Run this command to install Go and imagemagick.
 *Windows:*
 
 Download the installer from [here](https://golang.org/dl/).  
-You also need the imagemagick installed, see [here](http://www.imagemagick.org/script/binary-releases.php)
+You also need the imagemagick installed, see [here](http://www.imagemagick.org/script/download.php#windows)
 
 *Other:*
 If you are running a different operating system you will need to get Go and imagemagick.
