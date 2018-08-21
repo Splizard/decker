@@ -15,7 +15,7 @@ func init() {
 	var client http.Client
 	
 	//Regexes needed for parsing results from http://cardfight.wikia.com
-	var cardfightregex *regexp.Regexp = regexp.MustCompile(`<a href="(.[0-9a-zA-z _\/\.\-(),:]*)" class="result-link"`)
+	var cardfightregex *regexp.Regexp = regexp.MustCompile(`<a href="([^"]*)" class="result-link"`)
 	var cardfightimageregex *regexp.Regexp = regexp.MustCompile(`<a href="([^"]*)" 	class="image image-thumbnail"`)
 	
 	RegisterHeaders(Cardfight, []string{"Cardfight!! Vanguard", "Cardfight", "Cardfight! Vanguard"})
