@@ -395,21 +395,31 @@ func decker(filename string) {
 		//Then it makes the different folder the current working directory and complains
 		//when it can't find montage.exe that you packaged in the same folder.
 		if runtime.GOOS == "windows" {
+			
 			command, err = filepath.Abs(os.Args[0])
 			command = filepath.Dir(command)
 			if err != nil {
-				command = "magick"
+				command = "montage"
 			} else {
-				command = "magick"
+				command += "/montage"
 			}
-		}
-
-		//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
-		magick := exec.Command(command, "montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
-		text, err := magick.CombinedOutput()
-		if err != nil {
-			fmt.Print(string(text))
-			handle(err)
+			
+			//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
+			magick := exec.Command(command, "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
+			text, err := magick.CombinedOutput()
+			if err != nil {
+				fmt.Print(string(text))
+				handle(err)
+			}
+			
+		} else {
+			//Run montage. TODO maybe make these values tweakable, for now they do a fine job.
+			magick := exec.Command(command, "montage", "-background", "rgb(23,20,15)", "-tile", "10x7", "-quality", "100", "-geometry", "410x586!+0+0", temp+"/*.jpg", output)
+			text, err := magick.CombinedOutput()
+			if err != nil {
+				fmt.Print(string(text))
+				handle(err)
+			}
 		}
 		
 		fmt.Println("Creating Tabletop file...")

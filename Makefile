@@ -34,6 +34,8 @@ zip:
 	
 	rm -f ./pkg/zip/decker-$(VERSION).zip
 	find . -name "*.deck" -print | zip ./pkg/zip/decker-$(VERSION).zip -@
+	find . -name "montage.exe" -print | zip ./pkg/zip/decker-$(VERSION).zip -@
+	find . -name "vcomp100.dll" -print | zip ./pkg/zip/decker-$(VERSION).zip -@
 	cd ./pkg/zip/windows/ && find . -print | zip ../decker-$(VERSION).zip -@
 	
 deb:
