@@ -8,34 +8,34 @@ import "net/http"
 import "net/url"
 import "errors"
 import "os"
-import "regexp"
 import "io"
-import "io/ioutil"
+import "encoding/json"
 
 const Magic = "magic"
+
+type MagicCard struct {
+	Images struct{
+		
+		Large string `json:"large"`
+		
+	} `json:"image_uris"`
+}
 
 func init() {
 
 	var client http.Client
-	
-	var magicimageregex *regexp.Regexp = regexp.MustCompile(`http://magiccards.info/scans/([0-9a-zA-z \/_\.\-,:]*)`)
 
 	RegisterHeaders(Magic, []string{"Magic: The Gathering", "Magic", "MTG"})
 	
 	RegisterBack(Magic, "https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering-card_back.jpg")
 
 	RegisterPlugin(Magic, func(name, info string, detecting bool) string {
-
-		var search string
-		var imagename string = name
-
+		
 		if _, err := os.Stat( DeckerCachePath + "/cards/magic/" + name + ".jpg"); !os.IsNotExist(err) {
 			return Magic
 		}
 		
-		search = "http://magiccards.info/query?q="+url.QueryEscape(name)+"&v=card&s=edition"
-		
-		response, err := client.Get(search)
+		response, err := client.Get("https://api.scryfall.com/cards/named?fuzzy="+url.QueryEscape(name))
 		Handle(err)
 		
 		if response.StatusCode != 200 {
@@ -43,24 +43,16 @@ func init() {
 			fmt.Println("possible error check card! " + name + ", status " + response.Status)
 		}
 		
-		body, err := ioutil.ReadAll(response.Body)
+		//Now we should parse the Json data of the card.
+		var decoder = json.NewDecoder(response.Body)
+		var card MagicCard
+		
+		err = decoder.Decode(&card)
 		Handle(err)
 		
-		var image string
 		
-		//Magic Image Regex!
-		submatches := magicimageregex.FindStringSubmatch(string(body))
-		if len(submatches) < 2 {
-			//Indeed.. a bug on magiccards.info :3
-			//As they don't have the LATEST SETS SOMETIMES D:
-			//Handle(errors.New("No image found for card " + name + ", this could be a bug !"))
-			//Gonna fix this with using gather as a fallback.
-			image = "http://gatherer.wizards.com/Handlers/Image.ashx?name="+url.QueryEscape(name)+"&type=card"
-			fmt.Println("Some of the cards were not found on mtgimage.com, I have decided to pull those cards from gatherer.wizards.com which is risky because I don't know if they will be found...")
-			fmt.Println("Check that all your cards are in the final image!")
-		} else {
-			image = "http://magiccards.info/scans/"+string(submatches[1])
-		}
+		var image = card.Images.Large
+		var imagename string
 
 		//Now we can check if we already have the image cached, otherwise download it.
 		if _, err := os.Stat(DeckerCachePath  + "/cards/magic/" + name + ".jpg"); !os.IsNotExist(err) {
