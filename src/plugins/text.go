@@ -24,6 +24,9 @@ func init() {
 		resize_text := func(width int, text string) (string, string, bool) {
 			overlap := float32(width)/float32(length(text))
 			scale := overlap*float32(len(text))
+
+			// Replace space with new line characters
+			text = strings.Replace(text, "\\n", "\n", -1)
 	
 			//Check for spaces.
 			for i := int(scale); i > 0; i-- {
