@@ -1,8 +1,8 @@
 Decker!
 ---------
 A tool for creating trading card decks for Table Top Simulator.
+Magic, Pokemon, Yugioh and even support for custom cards!
 
-At the moment, it only supports magic and pokemon decks.
 Have a look at the provided example decks on how to format a deck.
 
 ### Build dependencies ###
