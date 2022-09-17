@@ -1,5 +1,5 @@
 //Magic.
-//This plugin will download magic cards from http://magiccards.info
+//This plugin will download magic cards from scryfall.
 //As a fallback it will use the gatherer website! (http://gatherer.wizards.com/)
 package plugins
 
