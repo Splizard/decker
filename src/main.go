@@ -1,19 +1,19 @@
 /*
-	Decker, a tool for generating card decks for Tabletop Simulator
-	Copyright (C) 2014 Quentin Quaadgras
+		Decker, a tool for generating card decks for Tabletop Simulator
+		Copyright (C) 2014 Quentin Quaadgras
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; version 2 of the License.
+	    This program is free software; you can redistribute it and/or modify
+	    it under the terms of the GNU General Public License as published by
+	    the Free Software Foundation; version 2 of the License.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	    This program is distributed in the hope that it will be useful,
+	    but WITHOUT ANY WARRANTY; without even the implied warranty of
+	    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	    GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	    You should have received a copy of the GNU General Public License along
+	    with this program; if not, write to the Free Software Foundation, Inc.,
+	    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 package main
 
@@ -38,20 +38,20 @@ import (
 	"sync"
 	"time"
 
-	"./ct"
-	"./deck"
-	"./plugins"
+	"github.com/Splizard/decker/src/ct"
+	"github.com/Splizard/decker/src/deck"
+	"github.com/Splizard/decker/src/plugins"
 	//"html"
 )
 
-//Error handler, all bad errors will be sent here.
+// Error handler, all bad errors will be sent here.
 func handle(err error) {
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
-//A nice copy function that will handle errors.
+// A nice copy function that will handle errors.
 func Copy(src, dst string) (int64, error) {
 	src_file, err := os.Open(src)
 	if err != nil {
@@ -93,7 +93,7 @@ func init() {
 	flag.StringVar(&game, "g", None, "set card game")
 }
 
-//Define the current card games decker supports.
+// Define the current card games decker supports.
 const (
 	None = "none"
 )
@@ -180,8 +180,8 @@ func upload(filename string) {
 	}
 }
 
-//Decker function, can be called from a goroutine to generate decks in parallel.
-//(Don't know if concurrency is really going to be used much other then bulk testing but this is Go so why not!)
+// Decker function, can be called from a goroutine to generate decks in parallel.
+// (Don't know if concurrency is really going to be used much other then bulk testing but this is Go so why not!)
 func decker(filename string) {
 
 	//Don't crash the whole program when a bad error panics a goroutine.
@@ -484,8 +484,8 @@ func decker(filename string) {
 	AddToTheTableTop(Deck, filename, images, game, total)
 }
 
-//This puts an image into TabletopSimiulator.
-//It should take a struct but that is not worthy of my time.
+// This puts an image into TabletopSimiulator.
+// It should take a struct but that is not worthy of my time.
 func processlikeaBOSS(Deck deck.Deck, output, filename, game string, total int) {
 	//Crop the deck to a power of 2, 4096x4096 this will overwrite the file as a compressed jpeg.
 	err := CropDeck(output)
@@ -494,7 +494,7 @@ func processlikeaBOSS(Deck deck.Deck, output, filename, game string, total int) 
 	Copy(output, cache+"/images/"+filepath.Base(filename)+".jpg")
 }
 
-//AddToTheTableTop shamelessly shoves the deck into TableTop Simulator.
+// AddToTheTableTop shamelessly shoves the deck into TableTop Simulator.
 func AddToTheTableTop(Deck deck.Deck, filename string, images []string, game string, total int) {
 	cardback := plugins.GetBack(game)
 	if cardback != "" {
@@ -588,14 +588,14 @@ func AddToTheTableTop(Deck deck.Deck, filename string, images []string, game str
 	fmt.Println(filename + "!")
 }
 
-//Concurrency things.
+// Concurrency things.
 var wg sync.WaitGroup
 var threading bool
 
-//Where the cache at.
+// Where the cache at.
 var cache string
 
-//Where the Tabletop Chest directory is.
+// Where the Tabletop Chest directory is.
 var chest string
 var ip_address string = "localhost"
 
@@ -616,9 +616,9 @@ func walker(path string, info os.FileInfo, err error) error {
 	return filepath.SkipDir
 }
 
-//This will serve decks to other players in Tabletop simulator.
-//This should hopefully just "work"
-//Not tested over the internet yet...
+// This will serve decks to other players in Tabletop simulator.
+// This should hopefully just "work"
+// Not tested over the internet yet...
 func host() {
 
 	file_server := http.FileServer(http.Dir(cache + "/images/"))
@@ -650,7 +650,7 @@ func host() {
 		})))
 }
 
-//This will format the .json saves to IP or localhost.
+// This will format the .json saves to IP or localhost.
 func TabletopSetLocal(b bool) {
 	files, _ := ioutil.ReadDir(cache + "/images/")
 	for _, f := range files {
