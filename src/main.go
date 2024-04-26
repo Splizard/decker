@@ -19,8 +19,8 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -38,9 +38,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Splizard/decker/external/api/freeimage"
 	"github.com/Splizard/decker/src/ct"
 	"github.com/Splizard/decker/src/deck"
 	"github.com/Splizard/decker/src/plugins"
+	"runtime.link/api"
+	"runtime.link/api/rest"
 	//"html"
 )
 
@@ -117,66 +120,53 @@ type ImgurRequest struct {
 }
 
 func upload(filename string) {
+	var FreeImage = api.Import[freeimage.API](rest.API, "https://freeimage.host", nil)
+
 	if file, err := os.Open(filename); err == nil {
 
 		fmt.Println("Uploading " + filename + "...")
 		img, err := ioutil.ReadAll(file)
 		handle(err)
 
-		v := url.Values{}
-		v.Set("image", base64.StdEncoding.EncodeToString(img))
-		v.Set("type", "base64")
+		result, err := FreeImage.Upload(context.Background(), freeimage.Data{
+			Key:    "6d207e02198a847aa98d0a2a901485a5",
+			Action: "upload",
+			Source: base64.StdEncoding.EncodeToString(img),
+		})
 		handle(err)
-
-		reader := strings.NewReader(v.Encode())
-
-		request, err := http.NewRequest("POST", "https://api.imgur.com/3/image", reader)
-		handle(err)
-		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		request.Header.Set("Authorization", "Client-ID 47122dc42ac36ad")
-
-		response, err := http.DefaultClient.Do(request)
-		handle(err)
-
-		body, err := ioutil.ReadAll(response.Body)
-		handle(err)
-
-		imgur := ImgurResponse{}
-		json.Unmarshal(body, &imgur)
-		if imgur.Success {
-			link, err := url.QueryUnescape(imgur.Data.Link)
-			handle(err)
-
-			name := filepath.Base(filename)[:len(filepath.Base(filename))-4] + ".json"
-
-			//Handle large decks. TODO make this more robust.
-			if name[len(name)-12:len(name)-6] == ".deck-" {
-				name = name[:len(name)-7] + " (part " + string(name[len(name)-6]+1) + ").deck.json"
-			}
-
-			file, err := os.Open(chest + "/" + name)
-			if err == nil {
-				data, err := ioutil.ReadAll(file)
-				if err == nil {
-					data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+filepath.Base(filename), link, -1))
-					data = []byte(strings.Replace(string(data), "http://localhost:20002/"+filepath.Base(filename), link, -1))
-					ioutil.WriteFile(chest+"/"+name, data, 0644)
-				}
-			} else {
-				handle(err)
-			}
-
-			//Yay we did it!
-			ct.ChangeColor(ct.Green, true, ct.None, false)
-			fmt.Print("Done ")
-			ct.ResetColor()
-			fmt.Println(filename + "!")
-
-			fmt.Println(filepath.Base(filename) + " can now be found at the following location: " + link)
-			fmt.Println(filepath.Base(filename) + " can be deleted by visiting :  https://api.imgur.com/3/image/" + imgur.Data.DeleteHash)
-		} else {
-			handle(errors.New(imgur.Data.Error))
+		if result.Image.URL == "" {
+			handle(errors.New("image upload failed"))
 		}
+
+		link, err := url.QueryUnescape(result.Image.URL)
+		handle(err)
+
+		name := filepath.Base(filename)[:len(filepath.Base(filename))-4] + ".json"
+
+		//Handle large decks. TODO make this more robust.
+		if name[len(name)-12:len(name)-6] == ".deck-" {
+			name = name[:len(name)-7] + " (part " + string(name[len(name)-6]+1) + ").deck.json"
+		}
+
+		file, err := os.Open(chest + "/" + name)
+		if err == nil {
+			data, err := ioutil.ReadAll(file)
+			if err == nil {
+				data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+filepath.Base(filename), link, -1))
+				data = []byte(strings.Replace(string(data), "http://localhost:20002/"+filepath.Base(filename), link, -1))
+				ioutil.WriteFile(chest+"/"+name, data, 0644)
+			}
+		} else {
+			handle(err)
+		}
+
+		//Yay we did it!
+		ct.ChangeColor(ct.Green, true, ct.None, false)
+		fmt.Print("Done ")
+		ct.ResetColor()
+		fmt.Println(filename + "!")
+
+		fmt.Println(filepath.Base(filename) + " can now be found at the following location: " + link)
 	}
 }
 
