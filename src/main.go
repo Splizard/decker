@@ -152,9 +152,14 @@ func upload(filename string) {
 		if err == nil {
 			data, err := ioutil.ReadAll(file)
 			if err == nil {
-				data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+filepath.Base(filename), link, -1))
-				data = []byte(strings.Replace(string(data), "http://localhost:20002/"+filepath.Base(filename), link, -1))
-				ioutil.WriteFile(chest+"/"+name, data, 0644)
+				fmt.Println(filename)
+				data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+url.PathEscape(filepath.Base(filename)), link, -1))
+				data = []byte(strings.Replace(string(data), "http://localhost:20002/"+url.PathEscape(filepath.Base(filename)), link, -1))
+				if err := ioutil.WriteFile(chest+"/"+name, data, 0644); err != nil {
+					handle(err)
+				}
+			} else {
+				handle(err)
 			}
 		} else {
 			handle(err)
@@ -512,7 +517,7 @@ func AddToTheTableTop(Deck deck.Deck, filename string, images []string, game str
 	var nicknames string
 	var counter int
 	for _, name := range Deck.Cards {
-		for j := 0; j < Deck.Copies[name]; j++ {
+		for j := 0; j < Deck.Copies[name]; j++ { // FIXME, we don't garuantee that a name is unique.
 			//Because Python is fun.
 			nicknames += fmt.Sprintf(`
 				{

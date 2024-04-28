@@ -58,7 +58,7 @@ func init() {
 		var image = card.Images.Large
 		var imagename string
 
-		if len(card.CardFaces) > 0 {
+		if image == "" && len(card.CardFaces) > 0 {
 			image = card.CardFaces[0].ImageUris.Large
 		}
 		if image == "" {

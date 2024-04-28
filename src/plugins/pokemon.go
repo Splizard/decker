@@ -1,38 +1,40 @@
 package plugins
 
-import "fmt"
-import "net/http"
-import "net/url"
-import "errors"
-import "os"
-import "regexp"
-import "io"
-import "io/ioutil"
-import "strings"
-import "path/filepath"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+)
 
 const Pokemon = "pokemon"
 
 func init() {
 	var client http.Client
-	
+
 	//Regexes needed for parsing results from pkmncards.com
 	var pokemonregex *regexp.Regexp = regexp.MustCompile(`https://pkmncards\.com/card/(.[0-9a-zA-z _\.\-,:]*)/`)
 	var pokemonimageregex *regexp.Regexp = regexp.MustCompile(`"og:image"\scontent="([0-9a-zA-z \/_\.\-,:]*)`)
-	
+
 	RegisterHeaders(Pokemon, []string{"Pokémon Trading Card Game", "Pokemon Trading Card Game", "Pokemon"})
 	RegisterBack(Pokemon, "http://vignette1.wikia.nocookie.net/cardgame/images/a/ac/Pokemon-card-back.jpg/revision/latest?cb=20131228023927")
-	
+
 	RegisterPlugin(Pokemon, func(name, info string, detecting bool) string {
 
-		if _, err := os.Stat( DeckerCachePath + "/cards/pokemon/" + name + ".jpg"); info == "" && !os.IsNotExist(err) {
+		if _, err := os.Stat(DeckerCachePath + "/cards/pokemon/" + name + ".jpg"); info == "" && !os.IsNotExist(err) {
 			return Pokemon
 		}
 
 		//Format url, pkmncards.com does not like an empty text:"" field.
 		var oldname string = name
 		var search string
-		
+
 		//This bit recognises extra information to be queried along with the card name.
 		//This solves the problem with card games where there are many cards of the same name.
 		//Looking at you Pokemon -.-
@@ -59,21 +61,23 @@ func init() {
 			name = splits[0]
 			info = strings.TrimSpace(splits[1])
 		}
-		
+
 		var imagename string = name
-		 
+
 		// Make a Regex to say we only want
 		reg, err := regexp.Compile("[^a-zA-Z0-9 ]+")
 		if err != nil {
 			panic(err)
 		}
 		query := reg.ReplaceAllString(name, "")
-    
+
 		if info != "" {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(query) + "+text%3A%22" + url.QueryEscape(info) + "&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(query+info)
 		} else {
-			search = "http://pkmncards.com/?s=" + url.QueryEscape(query) + "&display=scan&sort=date"
+			search = "http://pkmncards.com/?s=" + url.QueryEscape(query)
 		}
+
+		fmt.Println(search)
 
 		//This returns the search results for the card.
 		response, err := client.Get(search)
@@ -122,17 +126,17 @@ func init() {
 		//Extract the filename for the cache.
 		path, err := url.Parse(image)
 		Handle(err)
-		
+
 		if info != "" {
 			imagename = strings.Replace(filepath.Base(path.Path), ".jpg", "", 1)
 			SetImageName(Pokemon, oldname, imagename)
 		}
 
 		//Now we can check if we already have the image cached, otherwise download it.
-		if _, err := os.Stat(DeckerCachePath  + "/cards/pokemon/" + name + ".jpg"); !os.IsNotExist(err) {
+		if _, err := os.Stat(DeckerCachePath + "/cards/pokemon/" + name + ".jpg"); !os.IsNotExist(err) {
 			return Pokemon
 		} else {
-			if ! detecting {
+			if !detecting {
 				fmt.Println("getting", image)
 			}
 			response, err = client.Get(image)
