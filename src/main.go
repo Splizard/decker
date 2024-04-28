@@ -142,19 +142,23 @@ func upload(filename string) {
 		handle(err)
 
 		name := filepath.Base(filename)[:len(filepath.Base(filename))-4] + ".json"
+		webname := filepath.Base(filename)
 
 		//Handle large decks. TODO make this more robust.
 		if name[len(name)-12:len(name)-6] == ".deck-" {
-			name = name[:len(name)-7] + " (part " + string(name[len(name)-6]+1) + ").deck.json"
+			webname = webname[:len(webname)-6] + " (part " + string(name[len(name)-6]+1) + ").deck.jpg"
+			name = name[:len(name)-12] + ".deck.json"
 		}
+
+		webname = url.PathEscape(webname)
 
 		file, err := os.Open(chest + "/" + name)
 		if err == nil {
 			data, err := ioutil.ReadAll(file)
 			if err == nil {
-				fmt.Println(filename)
-				data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+url.PathEscape(filepath.Base(filename)), link, -1))
-				data = []byte(strings.Replace(string(data), "http://localhost:20002/"+url.PathEscape(filepath.Base(filename)), link, -1))
+
+				data = []byte(strings.Replace(string(data), "http://"+ip_address+":20002/"+webname, link, -1))
+				data = []byte(strings.Replace(string(data), "http://localhost:20002/"+webname, link, -1))
 				if err := ioutil.WriteFile(chest+"/"+name, data, 0644); err != nil {
 					handle(err)
 				}
